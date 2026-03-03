@@ -4,6 +4,7 @@ import './globals.css'
 import { ThemeProvider } from '@/components/layout/ThemeProvider'
 import { LangProvider } from '@/lib/i18n/LangContext'
 import Navbar from '@/components/layout/Navbar'
+import AppShell from '@/components/layout/AppShell'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -46,8 +47,10 @@ export default function RootLayout({
           disableTransitionOnChange={false}
         >
           <LangProvider>
-            <Navbar />
-            <main>{children}</main>
+            <AppShell accentColor="#22d3ee">
+              <Navbar />
+              <main>{children}</main>
+            </AppShell>
           </LangProvider>
         </ThemeProvider>
       </body>

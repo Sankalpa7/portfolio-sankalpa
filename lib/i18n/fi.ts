@@ -8,6 +8,10 @@ const fi = {
     skills: 'Taidot',
     certifications: 'Sertifikaatit',
     contact: 'Yhteystiedot',
+    language: 'Kieli',
+    theme: 'Teema',
+    light: 'Vaalea tila',
+    dark: 'Tumma tila',
   },
   hero: {
     available: 'Avoinna työtarjouksille',
@@ -98,12 +102,12 @@ const fi = {
     title: 'Taidot',
     subtitle:
       'Teknologiat, joiden parissa työskentelen — ikonit kiertävät kuin pyörä ja korostettu laatta näyttää aktiivisen taidon.',
-      categoryDescriptions: {
+    categoryDescriptions: {
       web: "Rakennan nopeita ja moderneja käyttöliittymiä — React-komponenteista kokonaisiin Next.js-sovelluksiin.",
       data: "Raakadatan käsittelystä mallien kouluttamiseen — työskentelyä ohjatun oppimisen ja oikean datan parissa.",
       tools: "Vahva ote IT-ympäristöihin — Azure AD:stä ja Linuxista arjen työkaluihin.",
     },
-      cats: {
+    cats: {
       web: 'Web & Frontend',
       data: 'Data & ML',
       tools: 'Työkalut & IT',
@@ -182,7 +186,8 @@ const fi = {
     field_subject: 'Miten voin auttaa sinua?',
     field_subject_placeholder: 'esim. Frontend-rooli Acme Corp:ssa',
     field_message: 'Kuvaile pyyntösi',
-    field_message_placeholder: 'Mitä enemmän yksityiskohtia, sen parempi — luen jokaisen viestin.',
+    field_message_placeholder:
+      'Mitä enemmän yksityiskohtia, sen parempi — luen jokaisen viestin.',
     char_limit: 'Enintään 900 merkkiä',
     building: 'luodaan tikettiä',
     attach_toggle: 'Liitä CV / portfolio-linkki',
@@ -190,7 +195,8 @@ const fi = {
     submit_idle: 'LÄHETÄ VIESTI',
     submit_hover: 'LUO TIKETTI',
     submit_loading: 'LUODAAN TIKETTIÄ…',
-    footer_note: 'Viestisi menee suoraan minulle — ei botteja, ei autovastaajia.',
+    footer_note:
+      'Viestisi menee suoraan minulle — ei botteja, ei autovastaajia.',
     success_title: 'Tiketti luotu.',
     success_sub: 'Palaan sinulle pian. Pidä silmällä sähköpostiasi.',
     success_ref: 'Tiketti-viite:',

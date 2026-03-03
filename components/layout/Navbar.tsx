@@ -9,6 +9,19 @@ import { useLang } from '@/lib/i18n/LangContext'
 
 type LangKey = 'en' | 'fi'
 
+type NavFallback = {
+  about: string
+  projects: string
+  experience: string
+  skills: string
+  certifications: string
+  contact: string
+  language: string
+  theme: string
+  light: string
+  dark: string
+}
+
 export default function Navbar() {
   const { theme, setTheme } = useTheme()
   const { locale, setLocale, t } = useLang()
@@ -45,14 +58,35 @@ export default function Navbar() {
 
   const toggleTheme = () => setTheme(theme === 'dark' ? 'light' : 'dark')
 
-  const navLinks = [
-    { label: t.nav.about, href: '#about' },
-    { label: t.nav.projects, href: '#projects' },
-    { label: t.nav.experience, href: '#experience' },
-    { label: t.nav.skills, href: '#skills' },
-    { label: t.nav.certifications, href: '#certifications' },
-    { label: t.nav.contact, href: '#contact' },
-  ]
+  // ✅ Stable SSR fallback labels (prevents hydration mismatch)
+  const navFallback: NavFallback = useMemo(
+    () => ({
+      about: 'About',
+      projects: 'Projects',
+      experience: 'Experience',
+      skills: 'Skills',
+      certifications: 'Certifications',
+      contact: 'Contact',
+      language: 'Language',
+      theme: 'Theme',
+      light: 'Light mode',
+      dark: 'Dark mode',
+    }),
+    []
+  )
+
+  // ✅ Use fallback until mounted so server & first client render match
+  const navLinks = useMemo(
+    () => [
+      { label: mounted ? t.nav.about : navFallback.about, href: '#about' },
+      { label: mounted ? t.nav.projects : navFallback.projects, href: '#projects' },
+      { label: mounted ? t.nav.experience : navFallback.experience, href: '#experience' },
+      { label: mounted ? t.nav.skills : navFallback.skills, href: '#skills' },
+      { label: mounted ? t.nav.certifications : navFallback.certifications, href: '#certifications' },
+      { label: mounted ? t.nav.contact : navFallback.contact, href: '#contact' },
+    ],
+    [mounted, t, navFallback]
+  )
 
   /**
    * Scrolled styles:
@@ -219,7 +253,7 @@ export default function Navbar() {
             {/* Divider */}
             <div className="w-px h-6 bg-slate-200 dark:bg-white/10" />
 
-            {/* Theme toggle (matched height + style) */}
+            {/* Theme toggle */}
             {mounted && (
               <button
                 type="button"
@@ -233,14 +267,14 @@ export default function Navbar() {
                   focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/50
                 "
                 aria-label="Toggle theme"
-                title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
+                title={theme === 'dark' ? navFallback.light : navFallback.dark}
               >
                 {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
               </button>
             )}
           </div>
 
-          {/* Mobile menu button (kept separate) */}
+          {/* Mobile menu button */}
           <Button
             variant="ghost"
             size="icon"
@@ -304,45 +338,47 @@ export default function Navbar() {
             </ul>
 
             {/* Language in mobile menu */}
-            {mounted && (
-              <div className="mt-5 pt-5 border-t border-slate-200 dark:border-white/10">
-                <p className="text-[11px] font-mono text-slate-500 dark:text-zinc-400 uppercase tracking-[0.15em] mb-2">
-                  {t.nav.language ?? 'Language'}
-                </p>
-                <div className="rounded-2xl border border-slate-200 bg-white p-2 dark:border-cyan-400/15 dark:bg-white/5">
-                  <LangItem lang="en" label="English" flag="🇬🇧" />
-                  <LangItem lang="fi" label="Suomi" flag="🇫🇮" />
-                </div>
+            <div className="mt-5 pt-5 border-t border-slate-200 dark:border-white/10">
+              <p className="text-[11px] font-mono text-slate-500 dark:text-zinc-400 uppercase tracking-[0.15em] mb-2">
+                {mounted ? (t.nav.language ?? navFallback.language) : navFallback.language}
+              </p>
+              <div className="rounded-2xl border border-slate-200 bg-white p-2 dark:border-cyan-400/15 dark:bg-white/5">
+                <LangItem lang="en" label="English" flag="🇬🇧" />
+                <LangItem lang="fi" label="Suomi" flag="🇫🇮" />
               </div>
-            )}
+            </div>
 
-            {/* Theme in mobile menu (optional but nice) */}
-            {mounted && (
-              <div className="mt-4">
-                <p className="text-[11px] font-mono text-slate-500 dark:text-zinc-400 uppercase tracking-[0.15em] mb-2">
-                  {t.nav.theme ?? 'Theme'}
-                </p>
-                <button
-                  type="button"
-                  onClick={toggleTheme}
-                  className="
-                    w-full flex items-center justify-between
-                    rounded-2xl px-4 py-3
-                    border border-slate-200 bg-white
-                    text-slate-700
-                    hover:border-cyan-300 hover:text-cyan-700
-                    transition-colors
-                    dark:border-cyan-400/15 dark:bg-white/5 dark:text-zinc-200/85
-                    dark:hover:text-cyan-200
-                  "
-                >
-                  <span className="font-mono text-[13px] tracking-wide">
-                    {theme === 'dark' ? (t.nav.light ?? 'Light mode') : (t.nav.dark ?? 'Dark mode')}
-                  </span>
-                  {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-                </button>
-              </div>
-            )}
+            {/* Theme in mobile menu */}
+            <div className="mt-4">
+              <p className="text-[11px] font-mono text-slate-500 dark:text-zinc-400 uppercase tracking-[0.15em] mb-2">
+                {mounted ? (t.nav.theme ?? navFallback.theme) : navFallback.theme}
+              </p>
+              <button
+                type="button"
+                onClick={toggleTheme}
+                className="
+                  w-full flex items-center justify-between
+                  rounded-2xl px-4 py-3
+                  border border-slate-200 bg-white
+                  text-slate-700
+                  hover:border-cyan-300 hover:text-cyan-700
+                  transition-colors
+                  dark:border-cyan-400/15 dark:bg-white/5 dark:text-zinc-200/85
+                  dark:hover:text-cyan-200
+                "
+              >
+                <span className="font-mono text-[13px] tracking-wide">
+                  {theme === 'dark'
+                    ? mounted
+                      ? (t.nav.light ?? navFallback.light)
+                      : navFallback.light
+                    : mounted
+                      ? (t.nav.dark ?? navFallback.dark)
+                      : navFallback.dark}
+                </span>
+                {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              </button>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

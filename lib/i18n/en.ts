@@ -6,6 +6,10 @@ const en = {
     skills: 'Skills',
     certifications: 'Certifications',
     contact: 'Contact',
+    language: 'Language',
+    theme: 'Theme',
+    light: 'Light mode',
+    dark: 'Dark mode',
   },
   hero: {
     available: 'Available for work',
@@ -101,7 +105,7 @@ const en = {
       data: "From raw datasets to trained models, working with supervised learning and real-world data.",
       tools: "Comfortable in enterprise IT environments — from Azure AD and Linux to everyday tooling.",
     },
-      cats: {
+    cats: {
       web: 'Web & Frontend',
       data: 'Data & ML',
       tools: 'Tools & IT',
@@ -180,7 +184,8 @@ const en = {
     field_subject: 'What can I help you with?',
     field_subject_placeholder: 'e.g. Frontend role at Acme Corp',
     field_message: 'Describe your request',
-    field_message_placeholder: 'The more details, the better — I read every message.',
+    field_message_placeholder:
+      'The more details, the better — I read every message.',
     char_limit: 'Up to 900 characters',
     building: 'building ticket',
     attach_toggle: 'Attach a CV / portfolio link',
@@ -188,7 +193,8 @@ const en = {
     submit_idle: 'SEND MESSAGE',
     submit_hover: 'CREATE TICKET',
     submit_loading: 'CREATING TICKET…',
-    footer_note: 'Your message goes directly to me — no bots, no autoresponders.',
+    footer_note:
+      'Your message goes directly to me — no bots, no autoresponders.',
     success_title: 'Ticket created.',
     success_sub: "I'll get back to you soon. Keep an eye on your inbox.",
     success_ref: 'Ticket Ref:',

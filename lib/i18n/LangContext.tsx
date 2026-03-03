@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, ReactNode, useEffect } from 'react'
 import en from './en'
 import fi from './fi'
 import type { Translations } from './en'
@@ -22,23 +22,43 @@ const LangContext = createContext<LangContextType>({
 })
 
 export function LangProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>('en')
+  // ✅ Always default to English on server & first render
+  const [locale, setLocale] = useState<Locale>('en')
+  const [mounted, setMounted] = useState(false)
 
-  // persist choice in localStorage
+  // ✅ After mount, read saved language
   useEffect(() => {
-    const saved = localStorage.getItem('lang') as Locale | null
-    if (saved && (saved === 'en' || saved === 'fi')) {
-      setLocaleState(saved)
+    setMounted(true)
+
+    const saved = localStorage.getItem('lang')
+    if (saved === 'fi' || saved === 'en') {
+      setLocale(saved)
     }
   }, [])
 
-  const setLocale = (l: Locale) => {
-    setLocaleState(l)
-    localStorage.setItem('lang', l)
+  // ✅ Persist changes
+  const handleSetLocale = (l: Locale) => {
+    setLocale(l)
+    try {
+      localStorage.setItem('lang', l)
+    } catch {}
   }
 
+  // ✅ Update <html lang="">
+  useEffect(() => {
+    if (mounted) {
+      document.documentElement.lang = locale
+    }
+  }, [locale, mounted])
+
   return (
-    <LangContext.Provider value={{ locale, t: translations[locale], setLocale }}>
+    <LangContext.Provider
+      value={{
+        locale,
+        t: translations[locale],
+        setLocale: handleSetLocale,
+      }}
+    >
       {children}
     </LangContext.Provider>
   )

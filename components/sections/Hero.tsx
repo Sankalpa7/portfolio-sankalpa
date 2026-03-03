@@ -1,23 +1,21 @@
 'use client'
 
 import dynamic from 'next/dynamic'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ArrowRight, Download, Github, Linkedin, Mail } from 'lucide-react'
 import { useLang } from '@/lib/i18n/LangContext'
 
 const TechSphere = dynamic(() => import('@/components/three/TechSphere'), {
   ssr: false,
-  loading: () => (
-    <div className="w-[360px] h-[360px] flex items-center justify-center">
-      <p className="text-slate-500 dark:text-zinc-600 text-xs font-mono">
-        // loading sphere...
-      </p>
-    </div>
-  ),
+  loading: () => null, // ✅ prevents visible flash
 })
 
 export default function Hero() {
   const { t } = useLang()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => setMounted(true), [])
 
   return (
     <section
@@ -63,9 +61,7 @@ export default function Hero() {
               className="text-6xl md:text-7xl font-bold leading-none mb-4"
               style={{ fontFamily: 'var(--font-syne)' }}
             >
-              <span className="text-slate-900 dark:text-white block">
-                {t.hero.firstName}
-              </span>
+              <span className="text-slate-900 dark:text-white block">{t.hero.firstName}</span>
               <span className="bg-gradient-to-r from-cyan-500 via-cyan-400 to-sky-400 bg-clip-text text-transparent block">
                 {t.hero.lastName}
               </span>
@@ -88,9 +84,7 @@ export default function Hero() {
                   <br />
                 </span>
               ))}
-              <span className="text-cyan-700 dark:text-cyan-400 font-medium">
-                {t.hero.bio_highlight}
-              </span>
+              <span className="text-cyan-700 dark:text-cyan-400 font-medium">{t.hero.bio_highlight}</span>
             </p>
 
             {/* Buttons */}
@@ -113,7 +107,6 @@ export default function Hero() {
                 </Button>
               </a>
 
-              {/* CV download: put cv.pdf inside /public */}
               <a href="/cv.pdf" download>
                 <Button
                   variant="outline"
@@ -140,21 +133,9 @@ export default function Hero() {
             {/* Social icons */}
             <div className="flex items-center gap-3">
               {[
-                {
-                  href: 'https://github.com/Sankalpa7',
-                  icon: <Github className="w-5 h-5" />,
-                  label: 'GitHub',
-                },
-                {
-                  href: 'https://www.linkedin.com/in/sankalpaneupane7/',
-                  icon: <Linkedin className="w-5 h-5" />,
-                  label: 'LinkedIn',
-                },
-                {
-                  href: 'mailto:sankalpaneupane7@gmail.com',
-                  icon: <Mail className="w-5 h-5" />,
-                  label: 'Email',
-                },
+                { href: 'https://github.com/Sankalpa7', icon: <Github className="w-5 h-5" />, label: 'GitHub' },
+                { href: 'https://www.linkedin.com/in/sankalpaneupane7/', icon: <Linkedin className="w-5 h-5" />, label: 'LinkedIn' },
+                { href: 'mailto:sankalpaneupane7@gmail.com', icon: <Mail className="w-5 h-5" />, label: 'Email' },
               ].map((item) => (
                 <a
                   key={item.label}
@@ -181,7 +162,6 @@ export default function Hero() {
 
           {/* RIGHT */}
           <div className="hidden md:flex items-center justify-center px-4 md:pr-6 xl:pr-10 py-12">
-            {/* ✅ Final frame: roomy + clips overflow + centers sphere */}
             <div
               className="
                 relative
@@ -196,12 +176,11 @@ export default function Hero() {
                 dark:shadow-none
               "
             >
-              {/* subtle radial glow only for light */}
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(14,165,233,0.08)_0%,transparent_65%)] dark:hidden" />
 
-              {/* inner padding so nothing touches the edges */}
+              {/* ✅ No placeholder text; mount sphere only after hydration */}
               <div className="relative w-full h-full flex items-center justify-center pt-4">
-                <TechSphere />
+                {mounted ? <TechSphere /> : null}
               </div>
             </div>
           </div>
