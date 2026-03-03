@@ -98,7 +98,12 @@ const fi = {
     title: 'Taidot',
     subtitle:
       'Teknologiat, joiden parissa työskentelen — ikonit kiertävät kuin pyörä ja korostettu laatta näyttää aktiivisen taidon.',
-    cats: {
+      categoryDescriptions: {
+      web: "Rakennan nopeita ja moderneja käyttöliittymiä — React-komponenteista kokonaisiin Next.js-sovelluksiin.",
+      data: "Raakadatan käsittelystä mallien kouluttamiseen — työskentelyä ohjatun oppimisen ja oikean datan parissa.",
+      tools: "Vahva ote IT-ympäristöihin — Azure AD:stä ja Linuxista arjen työkaluihin.",
+    },
+      cats: {
       web: 'Web & Frontend',
       data: 'Data & ML',
       tools: 'Työkalut & IT',

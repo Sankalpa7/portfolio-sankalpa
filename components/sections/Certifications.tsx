@@ -4,6 +4,22 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useLang } from '@/lib/i18n/LangContext'
 
+type Locale = 'en' | 'fi'
+
+type CertBase = {
+  id: string
+  title: string
+  provider: string
+  year: string
+  accent: string
+  iconLabel: string
+  previewType: 'image' | 'pdf'
+  previewSrc: string
+  modalSrc: string
+  description: { en: string; fi: string }
+  skills: { en: string[]; fi: string[] }
+}
+
 type CertSlide = {
   id: string
   title: string
@@ -18,7 +34,278 @@ type CertSlide = {
   modalSrc: string
 }
 
-const quotesEn = [
+/** ✅ Single source of truth: bilingual data (no module-level “localized later” hacks) */
+const CERTS: CertBase[] = [
+  {
+    id: 'gda',
+    title: 'Google Data Analytics',
+    provider: 'Coursera · Google',
+    year: '2023',
+    accent: '#22c55e',
+    iconLabel: 'DA',
+    previewType: 'image',
+    previewSrc: '/images/Google data analytics.jpg.jpeg',
+    modalSrc: '/images/Google data analytics.jpg.jpeg',
+    description: {
+      en: 'End-to-end analytics: collecting, cleaning and transforming data, then building dashboards for insight.',
+      fi: 'Koko analytiikkaputki: datan keruu, puhdistus ja muokkaus sekä dashboardien rakentaminen oivalluksia varten.',
+    },
+    skills: {
+      en: ['SQL', 'Tableau', 'R', 'Data Cleaning'],
+      fi: ['SQL', 'Tableau', 'R', 'Datan puhdistus'],
+    },
+  },
+  {
+    id: 'git-python',
+    title: 'Google IT Automation with Python',
+    provider: 'Coursera · Google',
+    year: '2024',
+    accent: '#0ea5e9',
+    iconLabel: 'GP',
+    previewType: 'pdf',
+    previewSrc: '',
+    modalSrc: '/images/Google IT Automation With Python.pdf',
+    description: {
+      en: 'Python, Git and IT automation for modern IT support and systems administration roles.',
+      fi: 'Python, Git ja IT-automaatiotyökalut nykyaikaisiin IT-tuki- ja järjestelmänhallintatehtäviin.',
+    },
+    skills: {
+      en: ['Python', 'Git & GitHub', 'Automation', 'Cloud Config'],
+      fi: ['Python', 'Git & GitHub', 'Automaatiot', 'Pilvikonfigurointi'],
+    },
+  },
+  {
+    id: 'gpm',
+    title: 'Google Project Management',
+    provider: 'Coursera · Google',
+    year: '2023',
+    accent: '#f59e0b',
+    iconLabel: 'PM',
+    previewType: 'pdf',
+    previewSrc: '',
+    modalSrc: '/images/Google Project Management Certificate.pdf',
+    description: {
+      en: 'Initiating, planning and running projects from kickoff to delivery using both Agile and waterfall.',
+      fi: 'Projektien käynnistys, suunnittelu ja toteutus aloituksesta toimitukseen — Agile ja vesiputous.',
+    },
+    skills: {
+      en: ['Agile', 'Project Planning', 'Risk Management'],
+      fi: ['Agile', 'Projektisuunnittelu', 'Riskienhallinta'],
+    },
+  },
+  {
+    id: 'cloud-cyber',
+    title: 'Elements of Cloud & Cybersecurity',
+    provider: 'Microsoft Skills for Jobs · Kajaanin AMK',
+    year: '2024',
+    accent: '#06b6d4',
+    iconLabel: 'CC',
+    previewType: 'image',
+    previewSrc: '/images/Cloud and cybersecurity certificate.PNG',
+    modalSrc: '/images/Cloud and cybersecurity certificate.PNG',
+    description: {
+      en: 'Fundamentals of cloud platforms, identity, and cybersecurity concepts for securing modern infrastructure.',
+      fi: 'Pilvialustojen, identiteetin ja kyberturvan perusteet modernin infrastruktuurin suojaamiseksi.',
+    },
+    skills: {
+      en: ['Cloud Basics', 'Cybersecurity', 'Identity & Access'],
+      fi: ['Pilven perusteet', 'Kyberturvallisuus', 'Identiteetti & pääsynhallinta'],
+    },
+  },
+  {
+    id: 'azure-badge',
+    title: 'Azure Fundamentals',
+    provider: 'Microsoft Skills for Jobs',
+    year: '2024',
+    accent: '#3b82f6',
+    iconLabel: 'AZ',
+    previewType: 'image',
+    previewSrc: '/images/Microsoft Azure Fundamental badge.png',
+    modalSrc: '/images/Microsoft Azure Fundamental badge.png',
+    description: {
+      en: 'Core Azure services, pricing, governance and security – a solid base for cloud and DevOps roles.',
+      fi: 'Azuressa keskeiset palvelut, hinnoittelu, hallintamallit ja tietoturva — vahva perusta pilvi- ja DevOps-rooleihin.',
+    },
+    skills: {
+      en: ['Azure Services', 'Cloud Concepts', 'Security'],
+      fi: ['Azure-palvelut', 'Pilvikonseptit', 'Tietoturva'],
+    },
+  },
+  {
+    id: 'ibm-it',
+    title: 'IT Technical Support Programme',
+    provider: 'IBM SkillsBuild · SkillUp Online',
+    year: '2023',
+    accent: '#8b5cf6',
+    iconLabel: 'IT',
+    previewType: 'image',
+    previewSrc: '/images/ibm-it-support-certificate.jpg',
+    modalSrc: '/images/ibm-it-support-certificate.jpg',
+    description: {
+      en: 'Hands-on IT support: troubleshooting, ticketing, escalation and clear communication with users.',
+      fi: 'Käytännön IT-tuki: vianhaku, tikettityö, eskalointi ja selkeä viestintä käyttäjien kanssa.',
+    },
+    skills: {
+      en: ['IT Support', 'Troubleshooting', 'Customer Focus'],
+      fi: ['IT-tuki', 'Vianmääritys', 'Asiakaspalvelu'],
+    },
+  },
+  {
+    id: 'udemy-it',
+    title: 'IT Support Technical Skills Bootcamp',
+    provider: 'Udemy',
+    year: '2023',
+    accent: '#a855f7',
+    iconLabel: 'TS',
+    previewType: 'image',
+    previewSrc: '/images/it-support-technical-skills-bootcamp.jpg',
+    modalSrc: '/images/it-support-technical-skills-bootcamp.jpg',
+    description: {
+      en: 'Bootcamp covering networking basics, Windows administration and day-to-day helpdesk workflows.',
+      fi: 'Bootcamp: verkkoperusteet, Windows-hallinta ja arjen helpdesk-työskentely.',
+    },
+    skills: {
+      en: ['Networking Basics', 'Windows', 'Helpdesk'],
+      fi: ['Verkkoperusteet', 'Windows', 'Helpdesk'],
+    },
+  },
+  {
+    id: 'primavera',
+    title: 'Primavera P6 Project Planning',
+    provider: 'Udemy',
+    year: '2024',
+    accent: '#f97316',
+    iconLabel: 'P6',
+    previewType: 'image',
+    previewSrc: '/images/Primavera-P6.jpeg',
+    modalSrc: '/images/Primavera-P6.jpeg',
+    description: {
+      en: 'Planning and controlling complex timelines with Primavera P6 – WBS, dependencies, baselines and tracking.',
+      fi: 'Aikataulujen suunnittelu ja ohjaus Primavera P6:lla — WBS, riippuvuudet, baseline ja seuranta.',
+    },
+    skills: {
+      en: ['Project Planning', 'Scheduling', 'Primavera P6'],
+      fi: ['Projektisuunnittelu', 'Aikataulutus', 'Primavera P6'],
+    },
+  },
+  {
+    id: 'python-bootcamp',
+    title: 'Complete Python Bootcamp: Zero to Hero',
+    provider: 'Udemy',
+    year: '2021',
+    accent: '#38bdf8',
+    iconLabel: 'PY',
+    previewType: 'image',
+    previewSrc: '/images/Pyhton-Bootcamp.jpg',
+    modalSrc: '/images/Pyhton-Bootcamp.jpg',
+    description: {
+      en: 'From Python basics to OOP and working with data through real projects and coding exercises.',
+      fi: 'Pythonin perusteista OOP:hen ja dataan — harjoituksia ja projekteja käytännön kautta.',
+    },
+    skills: {
+      en: ['Python', 'Scripting', 'OOP'],
+      fi: ['Python', 'Skriptaus', 'OOP'],
+    },
+  },
+  {
+    id: 'freecodecamp',
+    title: 'Responsive Web Design',
+    provider: 'freeCodeCamp',
+    year: '2019',
+    accent: '#10b981',
+    iconLabel: 'RW',
+    previewType: 'pdf',
+    previewSrc: '',
+    modalSrc: '/images/freecodecamp.pdf',
+    description: {
+      en: '300 hours of coursework in responsive web design, HTML and CSS fundamentals for the modern web.',
+      fi: '300 tuntia responsiivisen web-suunnittelun opintoja: HTML- ja CSS-perusteet moderniin webiin.',
+    },
+    skills: {
+      en: ['HTML', 'CSS', 'Responsive Design', 'Accessibility'],
+      fi: ['HTML', 'CSS', 'Responsiivinen design', 'Saavutettavuus'],
+    },
+  },
+  {
+    id: 'fsecure',
+    title: 'F-Secure PMCS Technical Training',
+    provider: 'F-Secure Corporation',
+    year: '2020',
+    accent: '#ef4444',
+    iconLabel: 'FS',
+    previewType: 'pdf',
+    previewSrc: '',
+    modalSrc: '/images/F-secure.pdf',
+    description: {
+      en: 'Technical certification on F-Secure PMCS features, security concepts and deployment best practices.',
+      fi: 'Tekninen sertifiointi: F-Secure PMCS -ominaisuudet, tietoturvakäsitteet ja käyttöönoton parhaat käytännöt.',
+    },
+    skills: {
+      en: ['Cybersecurity', 'PMCS', 'Security Products'],
+      fi: ['Kyberturvallisuus', 'PMCS', 'Tietoturvatuotteet'],
+    },
+  },
+  {
+    id: 'dude',
+    title: 'DUDE Project Participation',
+    provider: 'Centria University of Applied Sciences',
+    year: '2020',
+    accent: '#14b8a6',
+    iconLabel: 'DU',
+    previewType: 'pdf',
+    previewSrc: '',
+    modalSrc: '/images/dude.pdf',
+    description: {
+      en: 'Integrated Pipedrive data via API into SQL and planned a video stream website — 81 hours of project work.',
+      fi: 'Pipedrive-datan integrointi API:n kautta SQL:ään sekä videosuoratoistosivuston suunnittelu — 81 tuntia projektityötä.',
+    },
+    skills: {
+      en: ['API Integration', 'SQL', 'Web Development'],
+      fi: ['API-integraatio', 'SQL', 'Web-kehitys'],
+    },
+  },
+  {
+    id: 'sap',
+    title: 'SAP Introduction',
+    provider: 'SAP',
+    year: '2019',
+    accent: '#f59e0b',
+    iconLabel: 'SP',
+    previewType: 'pdf',
+    previewSrc: '',
+    modalSrc: '/images/SAP.pdf',
+    description: {
+      en: 'Introduction to SAP ERP and business systems, finishing with an online knowledge test on core concepts.',
+      fi: 'Johdanto SAP ERP:hen ja yritysjärjestelmiin — lopuksi verkkotentti ydinkäsitteistä.',
+    },
+    skills: {
+      en: ['SAP', 'ERP', 'Business Systems'],
+      fi: ['SAP', 'ERP', 'Yritysjärjestelmät'],
+    },
+  },
+  {
+    id: 'softcherry',
+    title: 'Frontend Developer — Soft Cherry',
+    provider: 'Soft Cherry Pvt. Ltd.',
+    year: '2018–2019',
+    accent: '#f43f5e',
+    iconLabel: 'SC',
+    previewType: 'pdf',
+    previewSrc: '',
+    modalSrc: '/images/softcherry.pdf',
+    description: {
+      en: 'Experience letter from a frontend role: UI mockups with Photoshop, Adobe XD, Figma and Illustrator.',
+      fi: 'Työtodistus frontend-roolista: UI-mockupit Photoshopilla, Adobe XD:llä, Figmalla ja Illustratorilla.',
+    },
+    skills: {
+      en: ['Figma', 'Adobe XD', 'UI Design', 'UX Research'],
+      fi: ['Figma', 'Adobe XD', 'UI-suunnittelu', 'UX-tutkimus'],
+    },
+  },
+]
+
+// Quotes stay English (per your request)
+const quotes = [
   { text: 'Every certificate is a door you unlocked — not by luck, but by showing up.', author: 'On persistence' },
   { text: 'The expert in anything was once a beginner who simply refused to quit.', author: 'Helen Hayes' },
   { text: 'An investment in knowledge always pays the best dividends.', author: 'Benjamin Franklin' },
@@ -26,102 +313,16 @@ const quotesEn = [
   { text: 'The beautiful thing about learning is that nobody can take it away from you.', author: 'B.B. King' },
 ]
 
-const quotesFi = [
-  { text: 'Jokainen sertifikaatti on ovi, jonka avasit — ei tuurilla, vaan tekemällä työn.', author: 'Sinnikkyydestä' },
-  { text: 'Jokainen asiantuntija oli joskus aloittelija, joka ei suostunut luovuttamaan.', author: 'Helen Hayes' },
-  { text: 'Panostus tietoon maksaa aina parhaat osingot.', author: 'Benjamin Franklin' },
-  { text: 'Oppiminen ei tapahdu sattumalta; sitä pitää etsiä intohimoisesti ja ahkerasti.', author: 'Abigail Adams' },
-  { text: 'Oppimisessa kauneinta on, ettei kukaan voi ottaa sitä sinulta pois.', author: 'B.B. King' },
-]
-
-function getCertSlides(locale: 'en' | 'fi'): CertSlide[] {
-  const isFi = locale === 'fi'
-  return [
-    {
-      id: 'gda',
-      title: isFi ? 'Google Data Analytics' : 'Google Data Analytics',
-      provider: 'Coursera · Google',
-      year: '2023',
-      accent: '#22c55e',
-      iconLabel: 'DA',
-      previewType: 'image',
-      previewSrc: '/images/Google data analytics.jpg.jpeg',
-      modalSrc: '/images/Google data analytics.jpg.jpeg',
-      description: isFi
-        ? 'Data-analytiikka alusta loppuun: keruu, puhdistus, muunnos ja dashboardit oivalluksiin.'
-        : 'End-to-end analytics: collecting, cleaning and transforming data, then building dashboards for insight.',
-      skills: ['SQL', 'Tableau', 'R', 'Data Cleaning'],
-    },
-    {
-      id: 'git-python',
-      title: isFi ? 'Google IT Automation with Python' : 'Google IT Automation with Python',
-      provider: 'Coursera · Google',
-      year: '2024',
-      accent: '#0ea5e9',
-      iconLabel: 'GP',
-      previewType: 'pdf',
-      previewSrc: '',
-      modalSrc: '/images/Google IT Automation With Python.pdf',
-      description: isFi
-        ? 'Python, Git ja IT-automaatio nykyaikaisiin IT-tuki- ja ylläpitotehtäviin.'
-        : 'Python, Git and IT automation for modern IT support and systems administration roles.',
-      skills: ['Python', 'Git & GitHub', 'Automation', 'Cloud Config'],
-    },
-    {
-      id: 'gpm',
-      title: isFi ? 'Google Project Management' : 'Google Project Management',
-      provider: 'Coursera · Google',
-      year: '2023',
-      accent: '#f59e0b',
-      iconLabel: 'PM',
-      previewType: 'pdf',
-      previewSrc: '',
-      modalSrc: '/images/Google Project Management Certificate.pdf',
-      description: isFi
-        ? 'Projektien käynnistys, suunnittelu ja läpivienti (Agile + waterfall) kickoffista toimitukseen.'
-        : 'Initiating, planning and running projects from kickoff to delivery using both Agile and waterfall.',
-      skills: ['Agile', 'Project Planning', 'Risk Management'],
-    },
-    {
-      id: 'cloud-cyber',
-      title: isFi ? 'Pilvi- ja kyberturvallisuuden perusteet' : 'Elements of Cloud & Cybersecurity',
-      provider: 'Microsoft Skills for Jobs · Kajaanin AMK',
-      year: '2024',
-      accent: '#06b6d4',
-      iconLabel: 'CC',
-      previewType: 'image',
-      previewSrc: '/images/Cloud and cybersecurity certificate.PNG',
-      modalSrc: '/images/Cloud and cybersecurity certificate.PNG',
-      description: isFi
-        ? 'Pilvialustojen, identiteetin ja kyberturvallisuuden perusteet modernin infran suojaamiseen.'
-        : 'Fundamentals of cloud platforms, identity, and cybersecurity concepts for securing modern infrastructure.',
-      skills: ['Cloud Basics', 'Cybersecurity', 'Identity & Access'],
-    },
-    {
-      id: 'azure-badge',
-      title: isFi ? 'Azure Fundamentals' : 'Azure Fundamentals',
-      provider: 'Microsoft Skills for Jobs',
-      year: '2024',
-      accent: '#3b82f6',
-      iconLabel: 'AZ',
-      previewType: 'image',
-      previewSrc: '/images/Microsoft Azure Fundamental badge.png',
-      modalSrc: '/images/Microsoft Azure Fundamental badge.png',
-      description: isFi
-        ? 'Azure-palvelut, hinnoittelu, hallinta ja turvallisuus — vahva perusta pilvi- ja DevOps-rooleihin.'
-        : 'Core Azure services, pricing, governance and security – a solid base for cloud and DevOps roles.',
-      skills: ['Azure Services', 'Cloud Concepts', 'Security'],
-    },
-    // keep the rest exactly like your original, just translate description/title similarly if you want
-    // (I keep them English if not critical)
-  ]
-}
-
 function SkillPill({ label, accent }: { label: string; accent: string }) {
   return (
     <span
       className="text-[10px] font-mono px-2.5 py-[3px] rounded-full border"
-      style={{ borderColor: accent + '40', color: accent, backgroundColor: accent + '12', letterSpacing: '0.04em' }}
+      style={{
+        borderColor: accent + '40',
+        color: accent,
+        backgroundColor: accent + '12',
+        letterSpacing: '0.04em',
+      }}
     >
       {label}
     </span>
@@ -133,15 +334,18 @@ function CardPreview({
   onClick,
   isCardHovered,
   showHint,
-  openLabel,
+  ctaLabel,
+  previewLabel,
 }: {
   cert: CertSlide
   onClick: () => void
   isCardHovered: boolean
   showHint: boolean
-  openLabel: string
+  ctaLabel: string
+  previewLabel: string
 }) {
   const isImage = cert.previewType === 'image'
+
   const pillClass = isCardHovered
     ? 'scale-[1.1] bg-cyan-500 text-black shadow-[0_0_28px_rgba(34,211,238,0.75)]'
     : showHint
@@ -184,16 +388,22 @@ function CardPreview({
       <div className={['absolute inset-0 transition-colors duration-300', isCardHovered ? 'bg-black/45' : 'bg-black/10'].join(' ')} />
 
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <span className={['flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[10px] font-mono', 'transition-all duration-200 ease-out', pillClass].join(' ')}>
+        <span
+          className={[
+            'flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[10px] font-mono',
+            'transition-all duration-200 ease-out',
+            pillClass,
+          ].join(' ')}
+        >
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
             <path d="M9 5l7 7-7 7" />
           </svg>
-          {openLabel}
+          {ctaLabel}
         </span>
       </div>
 
       <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-black/55 to-transparent flex items-end justify-between px-3 pb-1.5">
-        <span className="text-[9px] font-mono text-zinc-300 opacity-80">Preview</span>
+        <span className="text-[9px] font-mono text-zinc-300 opacity-80">{previewLabel}</span>
         <span className="text-[9px] font-mono" style={{ color: cert.accent }}>
           {cert.year}
         </span>
@@ -210,6 +420,7 @@ function ModalViewer({ cert }: { cert: CertSlide }) {
       </div>
     )
   }
+
   return (
     <div className="relative w-full bg-zinc-900" style={{ height: '62vh' }}>
       <iframe src={cert.modalSrc + '#toolbar=1&navpanes=0&scrollbar=1'} className="w-full h-full border-0" title={cert.title} />
@@ -218,10 +429,50 @@ function ModalViewer({ cert }: { cert: CertSlide }) {
 }
 
 export default function Certifications() {
-  const { t, locale } = useLang()
+  // ✅ IMPORTANT: use locale (not lang)
+  const { locale } = useLang()
+  const isFI = locale === 'fi'
 
-  const certSlides = useMemo(() => getCertSlides(locale), [locale])
-  const quotes = useMemo(() => (locale === 'fi' ? quotesFi : quotesEn), [locale])
+  // ✅ UI strings depend ONLY on locale
+  const ui = useMemo(() => {
+    return {
+      section: '// 05',
+      title: isFI ? 'Sertifikaatit' : 'Certifications',
+      subtitle: isFI
+        ? 'Korttipakka sertifikaateista — selaa kortteja ja avaa mikä tahansa nähdäksesi koko dokumentin.'
+        : 'A stacked deck of certificates — flip through the cards, then open any one to view the full document.',
+      preview: isFI ? 'Esikatselu' : 'Preview',
+      viewFull: isFI ? 'Näytä koko sertifikaatti' : 'View full certificate',
+      statCertificates: isFI ? 'Sertifikaatteja' : 'Certificates',
+      statLearningSince: isFI ? 'Oppiminen alkanut' : 'Learning since',
+      statPlatforms: isFI ? 'Alustoja' : 'Platforms',
+      card: isFI ? 'Kortti' : 'Card',
+      keysHint: isFI ? '← → näppäimet tai pyyhkäisy' : '← → keys or swipe',
+      modalPdfHint: isFI
+        ? 'PDF näkyy tässä — käytä työkalupalkkia zoomaukseen, lataukseen tai tulostukseen.'
+        : 'PDF rendered inline — use the built-in toolbar to zoom, download or print.',
+      modalIssuedBy: isFI ? 'Myöntäjä:' : 'Issued by',
+      modalOpenDownload: isFI ? 'Avaa / Lataa' : 'Open / Download',
+    }
+  }, [isFI])
+
+  // ✅ Slides are rebuilt whenever locale changes (no reload needed)
+  const slides: CertSlide[] = useMemo(() => {
+    const l: Locale = isFI ? 'fi' : 'en'
+    return CERTS.map((c) => ({
+      id: c.id,
+      title: c.title,
+      provider: c.provider,
+      year: c.year,
+      accent: c.accent,
+      iconLabel: c.iconLabel,
+      previewType: c.previewType,
+      previewSrc: c.previewSrc,
+      modalSrc: c.modalSrc,
+      description: c.description[l],
+      skills: c.skills[l],
+    }))
+  }, [isFI])
 
   const [activeIndex, setActiveIndex] = useState(0)
   const [modalSlide, setModalSlide] = useState<CertSlide | null>(null)
@@ -230,21 +481,20 @@ export default function Certifications() {
   const [ctaHint, setCtaHint] = useState(true)
   const [isCardHovered, setIsCardHovered] = useState(false)
 
-  // ✅ CRITICAL: clamp active index whenever slides change (prevents active undefined)
+  // ✅ When language changes, keep index safe
   useEffect(() => {
-    if (certSlides.length === 0) return
-    setActiveIndex((i) => Math.max(0, Math.min(i, certSlides.length - 1)))
-  }, [certSlides.length])
+    if (activeIndex > slides.length - 1) setActiveIndex(0)
+  }, [slides.length, activeIndex])
 
-  const active = certSlides[activeIndex] ?? certSlides[0]
+  const active = slides[activeIndex]
 
-  const goNext = useCallback(() => setActiveIndex((p) => (p + 1) % certSlides.length), [certSlides.length])
-  const goPrev = useCallback(() => setActiveIndex((p) => (p === 0 ? certSlides.length - 1 : p - 1)), [certSlides.length])
+  const goNext = useCallback(() => setActiveIndex((p) => (p + 1) % slides.length), [slides.length])
+  const goPrev = useCallback(() => setActiveIndex((p) => (p === 0 ? slides.length - 1 : p - 1)), [slides.length])
 
   useEffect(() => {
-    const timer = setInterval(() => setQuoteIndex((i) => (i + 1) % quotes.length), 6000)
-    return () => clearInterval(timer)
-  }, [quotes.length])
+    const t = setInterval(() => setQuoteIndex((i) => (i + 1) % quotes.length), 6000)
+    return () => clearInterval(t)
+  }, [])
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -260,9 +510,9 @@ export default function Certifications() {
   useEffect(() => {
     setCtaHint(true)
     setIsCardHovered(false)
-    const timer = setTimeout(() => setCtaHint(false), 1200)
-    return () => clearTimeout(timer)
-  }, [activeIndex])
+    const t = setTimeout(() => setCtaHint(false), 1200)
+    return () => clearTimeout(t)
+  }, [activeIndex, locale])
 
   const handleTouchStart = (e: any) => setTouchStartX(e.touches[0].clientX)
   const handleTouchEnd = (e: any) => {
@@ -273,8 +523,6 @@ export default function Certifications() {
     setTouchStartX(null)
   }
 
-  if (!active) return null
-
   return (
     <section id="certifications" className="py-24 bg-[#f5f5f5] dark:bg-[#050505] relative overflow-hidden">
       <div className="absolute inset-0 pointer-events-none">
@@ -284,20 +532,20 @@ export default function Certifications() {
 
       <div className="max-w-6xl mx-auto px-6 md:px-10 lg:px-6 xl:px-0 relative z-10">
         <div className="flex items-center gap-4 mb-3">
-          <span className="text-cyan-500 text-xs font-mono tracking-[0.25em]">// 05</span>
+          <span className="text-cyan-500 text-xs font-mono tracking-[0.25em]">{ui.section}</span>
           <div className="w-10 h-px bg-cyan-500" />
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white" style={{ fontFamily: 'var(--font-syne)' }}>
-            {t.certifications.title}
+            {ui.title}
           </h2>
           <div className="flex-1 h-px bg-zinc-300 dark:bg-zinc-800" />
         </div>
 
-        <p className="text-xs md:text-sm font-mono text-zinc-700 dark:text-zinc-400 max-w-xl mb-12">
-          {t.certifications.subtitle}
-        </p>
+        <p className="text-xs md:text-sm font-mono text-zinc-700 dark:text-zinc-400 max-w-xl mb-12">{ui.subtitle}</p>
 
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,0.95fr)] gap-12 xl:gap-20 items-start">
+          {/* LEFT */}
           <div className="flex flex-col gap-5 lg:gap-6">
+            {/* Quotes stay EN */}
             <div className="relative rounded-[28px] border border-zinc-200 dark:border-zinc-800 bg-white/85 dark:bg-zinc-950/70 px-7 py-8 overflow-hidden">
               <div className="absolute left-0 top-8 bottom-8 w-[3px] rounded-r-full transition-all duration-500" style={{ background: `linear-gradient(to bottom, ${active.accent}, #8b5cf6)` }} />
               <span className="absolute top-1 left-5 text-[100px] leading-none select-none font-serif pointer-events-none" style={{ color: active.accent + '10' }}>
@@ -335,11 +583,12 @@ export default function Certifications() {
               </div>
             </div>
 
+            {/* Stats */}
             <div className="grid grid-cols-3 gap-4">
               {[
-                { val: `${certSlides.length}+`, label: t.certifications.stats.certificates },
-                { val: '2019', label: t.certifications.stats.since },
-                { val: '5+', label: t.certifications.stats.platforms },
+                { val: `${slides.length}+`, label: ui.statCertificates },
+                { val: '2019', label: ui.statLearningSince },
+                { val: '5+', label: ui.statPlatforms },
               ].map((s) => (
                 <div key={s.label} className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white/90 dark:bg-zinc-950/70 px-5 py-4 text-left">
                   <p className="text-[22px] md:text-[24px] font-bold text-zinc-900 dark:text-white tracking-tight mb-1" style={{ fontFamily: 'var(--font-syne)' }}>
@@ -350,10 +599,11 @@ export default function Certifications() {
               ))}
             </div>
 
+            {/* Progress */}
             <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white/90 dark:bg-zinc-950/70 px-5 py-4">
               <div className="flex justify-between items-center mb-2.5">
                 <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-[0.12em]">
-                  {t.certifications.card} {String(activeIndex + 1).padStart(2, '0')} / {String(certSlides.length).padStart(2, '0')}
+                  {ui.card} {String(activeIndex + 1).padStart(2, '0')} / {String(slides.length).padStart(2, '0')}
                 </span>
                 <span className="text-[11px] font-mono" style={{ color: active.accent }}>
                   {active.year}
@@ -364,7 +614,7 @@ export default function Certifications() {
                 <motion.div
                   className="h-full rounded-full"
                   style={{ background: `linear-gradient(90deg, ${active.accent}, #8b5cf6)` }}
-                  animate={{ width: `${((activeIndex + 1) / certSlides.length) * 100}%` }}
+                  animate={{ width: `${((activeIndex + 1) / slides.length) * 100}%` }}
                   transition={{ duration: 0.4 }}
                 />
               </div>
@@ -374,8 +624,8 @@ export default function Certifications() {
           </div>
 
           {/* RIGHT */}
-          <div className="flex flex-col items-center gap-5 lg:pl-10 xl:pl-14">
-            <div className="relative flex justify-center items-center">
+          <div className="flex flex-col items-center lg:pl-10 xl:pl-14 min-h-[440px]">
+            <div className="relative flex justify-center items-center flex-1 w-full">
               <div className="pointer-events-none absolute w-[260px] md:w-[280px] h-[340px]">
                 <div className="absolute inset-0 rounded-[32px] bg-gradient-to-br from-zinc-200 to-zinc-50 dark:from-zinc-800 dark:to-zinc-900 translate-y-5 -translate-x-3 -rotate-[6deg] shadow-[0_18px_50px_rgba(0,0,0,0.55)]" />
                 <div className="absolute inset-0 rounded-[32px] bg-gradient-to-br from-zinc-100 to-white dark:from-zinc-700 dark:to-zinc-900 translate-y-2 translate-x-2 rotate-[4deg] shadow-[0_16px_45px_rgba(0,0,0,0.55)]" />
@@ -383,12 +633,12 @@ export default function Certifications() {
 
               <AnimatePresence mode="wait">
                 <motion.div
-                  key={active.id}
+                  key={`${locale}-${active.id}`}
                   initial={{ opacity: 0, y: 26, scale: 0.96 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -18, scale: 0.97 }}
                   transition={{ duration: 0.32, ease: 'easeOut' }}
-                  className="relative w-[260px] md:w-[280px] rounded-[32px] border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 shadow-[0_26px_80px_rgba(0,0,0,0.55)] px-5 py-5 flex flex-col gap-3 touch-pan-y"
+                  className="relative w-[260px] md:w-[280px] h-[340px] rounded-[32px] border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 shadow-[0_26px_80px_rgba(0,0,0,0.55)] px-5 py-5 flex flex-col gap-3 touch-pan-y overflow-hidden"
                   onMouseEnter={() => setIsCardHovered(true)}
                   onMouseLeave={() => setIsCardHovered(false)}
                   onTouchStart={handleTouchStart}
@@ -398,7 +648,10 @@ export default function Certifications() {
                     <p className="text-[10px] font-mono text-zinc-500 dark:text-zinc-400 uppercase tracking-[0.16em] leading-snug">
                       {active.provider}
                     </p>
-                    <div className="shrink-0 h-7 min-w-[32px] px-2 rounded-full flex items-center justify-center text-[10px] font-mono font-bold text-white" style={{ backgroundColor: active.accent }}>
+                    <div
+                      className="shrink-0 h-7 min-w-[32px] px-2 rounded-full flex items-center justify-center text-[10px] font-mono font-bold text-white"
+                      style={{ backgroundColor: active.accent }}
+                    >
                       {active.iconLabel}
                     </div>
                   </div>
@@ -412,10 +665,11 @@ export default function Certifications() {
                     onClick={() => setModalSlide(active)}
                     isCardHovered={isCardHovered}
                     showHint={ctaHint}
-                    openLabel={t.certifications.open_full}
+                    ctaLabel={ui.viewFull}
+                    previewLabel={ui.preview}
                   />
 
-                  <p className="text-[11px] font-mono text-zinc-600 dark:text-zinc-400 leading-relaxed">{active.description}</p>
+                  <p className="text-[11px] font-mono text-zinc-600 dark:text-zinc-400 leading-relaxed line-clamp-3">{active.description}</p>
 
                   <div className="flex flex-wrap gap-1.5">
                     {active.skills.map((s) => (
@@ -423,34 +677,47 @@ export default function Certifications() {
                     ))}
                   </div>
 
-                  <div className="flex items-center justify-between pt-1 border-t border-zinc-100 dark:border-zinc-800/80">
+                  <div className="mt-auto flex items-center justify-between pt-2 border-t border-zinc-100 dark:border-zinc-800/80">
                     <span className="text-[10px] font-mono text-zinc-400 dark:text-zinc-500">
-                      {String(activeIndex + 1).padStart(2, '0')} / {String(certSlides.length).padStart(2, '0')}
+                      {String(activeIndex + 1).padStart(2, '0')} / {String(slides.length).padStart(2, '0')}
                     </span>
-                    <span className="text-[9px] font-mono text-zinc-400 dark:text-zinc-500 hidden md:block">← → keys or swipe</span>
+                    <span className="text-[9px] font-mono text-zinc-400 dark:text-zinc-500 hidden md:block">{ui.keysHint}</span>
                   </div>
                 </motion.div>
               </AnimatePresence>
             </div>
 
-            <div className="flex items-center gap-3">
-              <button type="button" onClick={goPrev} className="h-9 w-9 rounded-full border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-500 dark:text-zinc-300 hover:border-cyan-400 hover:text-cyan-500 transition-all flex items-center justify-center text-sm">
+            {/* arrows pinned */}
+            <div className="mt-auto pt-4 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={goPrev}
+                className="h-9 w-9 rounded-full border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-500 dark:text-zinc-300 hover:border-cyan-400 hover:text-cyan-500 transition-all flex items-center justify-center text-sm"
+              >
                 ←
               </button>
 
               <div className="flex gap-1.5 items-center">
-                {certSlides.map((_, i) => (
+                {slides.map((_, i) => (
                   <button
                     key={i}
                     type="button"
                     onClick={() => setActiveIndex(i)}
                     className="rounded-full transition-all duration-300"
-                    style={{ width: i === activeIndex ? 18 : 5, height: 5, backgroundColor: i === activeIndex ? active.accent : 'rgba(161,161,170,0.3)' }}
+                    style={{
+                      width: i === activeIndex ? 18 : 5,
+                      height: 5,
+                      backgroundColor: i === activeIndex ? active.accent : 'rgba(161,161,170,0.3)',
+                    }}
                   />
                 ))}
               </div>
 
-              <button type="button" onClick={goNext} className="h-9 w-9 rounded-full border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-500 dark:text-zinc-300 hover:border-cyan-400 hover:text-cyan-500 transition-all flex items-center justify-center text-sm">
+              <button
+                type="button"
+                onClick={goNext}
+                className="h-9 w-9 rounded-full border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-500 dark:text-zinc-300 hover:border-cyan-400 hover:text-cyan-500 transition-all flex items-center justify-center text-sm"
+              >
                 →
               </button>
             </div>
@@ -458,9 +725,16 @@ export default function Certifications() {
         </div>
       </div>
 
+      {/* MODAL */}
       <AnimatePresence>
         {modalSlide && (
-          <motion.div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setModalSlide(null)}>
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-8"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setModalSlide(null)}
+          >
             <div className="absolute inset-0 bg-black/75 backdrop-blur-md" />
 
             <motion.div
@@ -483,7 +757,12 @@ export default function Certifications() {
                     ))}
                   </div>
                 </div>
-                <button type="button" onClick={() => setModalSlide(null)} className="shrink-0 h-8 w-8 rounded-full bg-zinc-800/80 hover:bg-zinc-700 flex items-center justify-center text-zinc-400 hover:text-white transition-colors text-xs">
+
+                <button
+                  type="button"
+                  onClick={() => setModalSlide(null)}
+                  className="shrink-0 h-8 w-8 rounded-full bg-zinc-800/80 hover:bg-zinc-700 flex items-center justify-center text-zinc-400 hover:text-white transition-colors text-xs"
+                >
                   &#x2715;
                 </button>
               </div>
@@ -493,22 +772,19 @@ export default function Certifications() {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-6 py-4 border-t border-zinc-800/60">
                 <p className="text-[10px] font-mono text-zinc-500">
                   {modalSlide.previewType === 'pdf'
-                    ? locale === 'fi'
-                      ? 'PDF näytetään upotettuna — käytä työkalupalkkia zoomaukseen, lataukseen tai tulostukseen.'
-                      : 'PDF rendered inline — use the built-in toolbar to zoom, download or print.'
-                    : `Issued by ${modalSlide.provider} · ${modalSlide.year}`}
+                    ? ui.modalPdfHint
+                    : `${ui.modalIssuedBy} ${modalSlide.provider} · ${modalSlide.year}`}
                 </p>
-                <div className="flex items-center gap-2">
-                  <a
-                    href={modalSlide.modalSrc}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[10px] font-mono border transition-colors"
-                    style={{ borderColor: modalSlide.accent + '70', color: modalSlide.accent }}
-                  >
-                    {t.certifications.open_full} &#x2197;
-                  </a>
-                </div>
+
+                <a
+                  href={modalSlide.modalSrc}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[10px] font-mono border transition-colors"
+                  style={{ borderColor: modalSlide.accent + '70', color: modalSlide.accent }}
+                >
+                  {ui.modalOpenDownload} &#x2197;
+                </a>
               </div>
             </motion.div>
           </motion.div>

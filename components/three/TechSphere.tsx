@@ -3,45 +3,45 @@
 import { useEffect, useRef } from 'react'
 
 const techs = [
-  { name: 'React',       icon: '⚛️'  },
-  { name: 'Next.js',     icon: '▲'   },
-  { name: 'TypeScript',  icon: 'TS'  },
-  { name: 'JavaScript',  icon: 'JS'  },
-  { name: 'HTML5',       icon: '🌐'  },
-  { name: 'CSS3',        icon: '🎨'  },
-  { name: 'Node.js',     icon: '🟢'  },
-  { name: 'Express',     icon: '🚂'  },
-  { name: 'Django',      icon: '🎸'  },
-  { name: 'Python',      icon: '🐍'  },
-  { name: 'Java',        icon: '☕'  },
-  { name: 'MongoDB',     icon: '🍃'  },
-  { name: 'Firebase',    icon: '🔥'  },
-  { name: 'MySQL',       icon: '🐬'  },
-  { name: 'OpenAI',      icon: '🤖'  },
-  { name: 'Claude AI',   icon: '🧠'  },
-  { name: 'LangChain',   icon: '🔗'  },
-  { name: 'HuggingFace', icon: '🤗'  },
-  { name: 'TensorFlow',  icon: '🧩'  },
-  { name: 'AWS',         icon: '☁️'  },
-  { name: 'Docker',      icon: '🐳'  },
-  { name: 'Vercel',      icon: '▲'   },
-  { name: 'Git',         icon: '🔀'  },
-  { name: 'REST APIs',   icon: '🔌'  },
-  { name: 'GitHub CI',   icon: '⚡'  },
-  { name: 'C / C++',     icon: '⚙️'  },
+  { name: 'React', icon: '⚛️' },
+  { name: 'Next.js', icon: '▲' },
+  { name: 'TypeScript', icon: 'TS' },
+  { name: 'JavaScript', icon: 'JS' },
+  { name: 'HTML5', icon: '🌐' },
+  { name: 'CSS3', icon: '🎨' },
+  { name: 'Node.js', icon: '🟢' },
+  { name: 'Express', icon: '🚂' },
+  { name: 'Django', icon: '🎸' },
+  { name: 'Python', icon: '🐍' },
+  { name: 'Java', icon: '☕' },
+  { name: 'MongoDB', icon: '🍃' },
+  { name: 'Firebase', icon: '🔥' },
+  { name: 'MySQL', icon: '🐬' },
+  { name: 'OpenAI', icon: '🤖' },
+  { name: 'Claude AI', icon: '🧠' },
+  { name: 'LangChain', icon: '🔗' },
+  { name: 'HuggingFace', icon: '🤗' },
+  { name: 'TensorFlow', icon: '🧩' },
+  { name: 'AWS', icon: '☁️' },
+  { name: 'Docker', icon: '🐳' },
+  { name: 'Vercel', icon: '▲' },
+  { name: 'Git', icon: '🔀' },
+  { name: 'REST APIs', icon: '🔌' },
+  { name: 'GitHub CI', icon: '⚡' },
+  { name: 'C / C++', icon: '⚙️' },
 ]
 
 const legend = [
   { label: 'Frontend', color: '#61dafb' },
-  { label: 'Backend',  color: '#68a063' },
-  { label: 'AI / ML',  color: '#a855f7' },
-  { label: 'DevOps',   color: '#fb923c' },
+  { label: 'Backend', color: '#68a063' },
+  { label: 'AI / ML', color: '#a855f7' },
+  { label: 'DevOps', color: '#fb923c' },
   { label: 'Database', color: '#22c55e' },
   { label: 'Language', color: '#eab308' },
 ]
 
 function fibonacciSphere(n: number) {
-  const pts = []
+  const pts: { x: number; y: number; z: number }[] = []
   const golden = Math.PI * (3 - Math.sqrt(5))
   for (let i = 0; i < n; i++) {
     const y = 1 - (i / (n - 1)) * 2
@@ -68,11 +68,45 @@ export default function TechSphere() {
     const container = containerRef.current
     if (!container) return
 
-    const R = 155
+    // ✅ smaller radius to match smaller visual area
+    const R = 135
     const positions = fibonacciSphere(techs.length)
-    const items: { el: HTMLDivElement; ox: number; oy: number; oz: number }[] = []
 
+    type Item = {
+      el: HTMLDivElement
+      iconEl: HTMLDivElement
+      labelEl: HTMLDivElement
+      ox: number
+      oy: number
+      oz: number
+    }
+
+    const items: Item[] = []
     container.innerHTML = ''
+
+    const isDark = () => document.documentElement.classList.contains('dark')
+
+    const getThemeTokens = () => {
+      if (isDark()) {
+        return {
+          iconBg: 'rgba(255,255,255,0.04)',
+          iconBorder: 'rgba(255,255,255,0.08)',
+          label: 'rgba(255,255,255,0.42)',
+        }
+      }
+      return {
+        iconBg: 'rgba(2,6,23,0.04)',
+        iconBorder: 'rgba(2,6,23,0.10)',
+        label: 'rgba(15,23,42,0.68)',
+      }
+    }
+
+    const applyThemeToItem = (item: Item) => {
+      const tok = getThemeTokens()
+      item.iconEl.style.background = tok.iconBg
+      item.iconEl.style.borderColor = tok.iconBorder
+      item.labelEl.style.color = tok.label
+    }
 
     techs.forEach((tech, i) => {
       const el = document.createElement('div')
@@ -84,8 +118,10 @@ export default function TechSphere() {
         align-items: center;
         gap: 3px;
         cursor: pointer;
-        transition: filter 0.2s;
         user-select: none;
+        transition: filter 0.2s;
+        will-change: transform, opacity;
+        transform: translate3d(-50%, -50%, 0);
       `
 
       const iconEl = document.createElement('div')
@@ -93,74 +129,88 @@ export default function TechSphere() {
         width: 36px; height: 36px;
         border-radius: 8px;
         display: flex; align-items: center; justify-content: center;
-        background: rgba(255,255,255,0.04);
-        border: 1px solid rgba(255,255,255,0.08);
         font-size: 1.1rem;
-        transition: all 0.2s;
+        transition: background 0.2s, border-color 0.2s;
+        border: 1px solid transparent;
+        background: transparent;
       `
       iconEl.textContent = tech.icon
 
-      const label = document.createElement('div')
-      label.style.cssText = `
+      const labelEl = document.createElement('div')
+      labelEl.style.cssText = `
         font-size: 0.5rem;
-        color: rgba(255,255,255,0.4);
         font-family: 'JetBrains Mono', monospace;
         white-space: nowrap;
         transition: color 0.2s;
       `
-      label.textContent = tech.name
+      labelEl.textContent = tech.name
 
       el.appendChild(iconEl)
-      el.appendChild(label)
+      el.appendChild(labelEl)
+
+      const item: Item = {
+        el,
+        iconEl,
+        labelEl,
+        ox: positions[i].x,
+        oy: positions[i].y,
+        oz: positions[i].z,
+      }
+
+      applyThemeToItem(item)
 
       el.addEventListener('mouseenter', () => {
         el.style.filter = 'drop-shadow(0 0 8px #06b6d4)'
         iconEl.style.background = 'rgba(6,182,212,0.15)'
         iconEl.style.borderColor = 'rgba(6,182,212,0.5)'
-        label.style.color = '#06b6d4'
+        labelEl.style.color = '#06b6d4'
       })
+
       el.addEventListener('mouseleave', () => {
         el.style.filter = 'none'
-        iconEl.style.background = 'rgba(255,255,255,0.04)'
-        iconEl.style.borderColor = 'rgba(255,255,255,0.08)'
-        label.style.color = 'rgba(255,255,255,0.4)'
+        applyThemeToItem(item)
       })
 
       container.appendChild(el)
-      items.push({ el, ox: positions[i].x, oy: positions[i].y, oz: positions[i].z })
+      items.push(item)
     })
 
-    function rotateX(p: {x:number;y:number;z:number}, a: number) {
-      const c = Math.cos(a), s = Math.sin(a)
+    function rotateX(p: { x: number; y: number; z: number }, a: number) {
+      const c = Math.cos(a)
+      const s = Math.sin(a)
       return { x: p.x, y: p.y * c - p.z * s, z: p.y * s + p.z * c }
     }
-    function rotateY(p: {x:number;y:number;z:number}, a: number) {
-      const c = Math.cos(a), s = Math.sin(a)
+    function rotateY(p: { x: number; y: number; z: number }, a: number) {
+      const c = Math.cos(a)
+      const s = Math.sin(a)
       return { x: p.x * c + p.z * s, y: p.y, z: -p.x * s + p.z * c }
     }
 
     function render() {
-      items.forEach(item => {
+      for (const item of items) {
         let p = { x: item.ox, y: item.oy, z: item.oz }
         p = rotateX(p, angleX.current)
         p = rotateY(p, angleY.current)
+
         const scale = (p.z + 1.6) / 2.6
         const x = p.x * R
         const y = p.y * R
-        item.el.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px)) scale(${0.6 + scale * 0.6})`
-        item.el.style.opacity = String(0.2 + scale * 0.8)
-        item.el.style.zIndex = String(Math.round(scale * 100))
-      })
+
+        const s = 0.62 + scale * 0.58
+        item.el.style.transform = `translate3d(${x}px, ${y}px, 0) translate3d(-50%, -50%, 0) scale(${s})`
+        item.el.style.opacity = String(0.28 + scale * 0.72)
+        item.el.style.zIndex = String(Math.floor((p.z + 2) * 1000))
+      }
     }
 
     function animate() {
       if (!isDragging.current) {
-        angleY.current += speedRef.current * 0.005
-        angleX.current += speedRef.current * 0.002
-        velX.current *= 0.95
-        velY.current *= 0.95
-        angleX.current += velX.current * 0.008
-        angleY.current += velY.current * 0.008
+        angleY.current += speedRef.current * 0.0045
+        angleX.current += speedRef.current * 0.0018
+        velX.current *= 0.94
+        velY.current *= 0.94
+        angleX.current += velX.current * 0.007
+        angleY.current += velY.current * 0.007
       }
       render()
       rafRef.current = requestAnimationFrame(animate)
@@ -175,6 +225,7 @@ export default function TechSphere() {
       velX.current = 0
       velY.current = 0
     }
+
     const onMouseMove = (e: MouseEvent) => {
       if (!isDragging.current) return
       const dx = e.clientX - lastX.current
@@ -186,14 +237,23 @@ export default function TechSphere() {
       lastX.current = e.clientX
       lastY.current = e.clientY
     }
-    const onMouseUp = () => { isDragging.current = false }
+
+    const onMouseUp = () => {
+      isDragging.current = false
+    }
 
     container.addEventListener('mousedown', onMouseDown)
     window.addEventListener('mousemove', onMouseMove)
     window.addEventListener('mouseup', onMouseUp)
 
+    const observer = new MutationObserver(() => {
+      items.forEach((it) => applyThemeToItem(it))
+    })
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+
     return () => {
       cancelAnimationFrame(rafRef.current)
+      observer.disconnect()
       container.removeEventListener('mousedown', onMouseDown)
       window.removeEventListener('mousemove', onMouseMove)
       window.removeEventListener('mouseup', onMouseUp)
@@ -201,10 +261,10 @@ export default function TechSphere() {
   }, [])
 
   return (
-    <div className="flex flex-col items-center gap-4">
-
-      <div className="relative flex items-center justify-center w-[400px] h-[400px]">
-        <div className="absolute w-40 h-40 bg-cyan-500/10 rounded-full blur-3xl animate-pulse pointer-events-none" />
+    <div className="flex flex-col items-center gap-3 w-[420px]">
+      {/* ✅ smaller sphere area so legend never gets clipped */}
+      <div className="relative flex items-center justify-center w-[360px] h-[360px]">
+        <div className="absolute w-36 h-36 bg-cyan-500/10 dark:bg-cyan-500/15 rounded-full blur-3xl animate-pulse pointer-events-none" />
         <div
           ref={containerRef}
           className="relative w-full h-full cursor-grab active:cursor-grabbing"
@@ -212,32 +272,42 @@ export default function TechSphere() {
         />
       </div>
 
-      <p className="text-zinc-600 dark:text-zinc-700 text-xs font-mono tracking-wide">
-        // <span className="text-cyan-500">drag</span> to rotate · <span className="text-cyan-500">hover</span> to explore
+      <p className="text-slate-600 dark:text-zinc-400 text-[11px] font-mono tracking-wide">
+        // <span className="text-cyan-600 dark:text-cyan-400">drag</span> to rotate ·{' '}
+        <span className="text-cyan-600 dark:text-cyan-400">hover</span> to explore
       </p>
 
-      <div className="flex items-center gap-1">
-        <span className="text-zinc-600 text-xs font-mono">slow</span>
+      <div className="flex items-center gap-2">
+        <span className="text-slate-600 dark:text-zinc-300 text-[11px] font-mono">slow</span>
         <input
           type="range"
           min="0"
           max="10"
           defaultValue="4"
-          onChange={(e) => { speedRef.current = parseFloat(e.target.value) }}
+          onChange={(e) => {
+            speedRef.current = parseFloat(e.target.value)
+          }}
           className="w-24 h-1 accent-cyan-500 cursor-pointer"
         />
-        <span className="text-zinc-600 text-xs font-mono">fast</span>
+        <span className="text-slate-600 dark:text-zinc-300 text-[11px] font-mono">fast</span>
       </div>
 
-      <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 max-w-xs">
+      <div className="flex flex-wrap justify-center gap-x-5 gap-y-1 max-w-xs pt-1">
         {legend.map((item) => (
-          <div key={item.label} className="flex items-center gap-1.5">
-            <div className="w-2 h-2 rounded-full" style={{ background: item.color }} />
-            <span className="text-zinc-500 text-xs font-mono">{item.label}</span>
+          <div
+            key={item.label}
+            className="flex items-center gap-2 transition-opacity duration-200 hover:opacity-80"
+          >
+            <div
+              className="w-2.5 h-2.5 rounded-full ring-1 ring-black/10 dark:ring-white/10"
+              style={{ background: item.color }}
+            />
+            <span className="text-slate-700 dark:text-zinc-300 text-[11px] font-mono tracking-wide">
+              {item.label}
+            </span>
           </div>
         ))}
       </div>
-
     </div>
   )
 }

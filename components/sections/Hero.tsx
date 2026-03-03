@@ -9,7 +9,9 @@ const TechSphere = dynamic(() => import('@/components/three/TechSphere'), {
   ssr: false,
   loading: () => (
     <div className="w-[360px] h-[360px] flex items-center justify-center">
-      <p className="text-zinc-600 text-xs font-mono">// loading sphere...</p>
+      <p className="text-slate-500 dark:text-zinc-600 text-xs font-mono">
+        // loading sphere...
+      </p>
     </div>
   ),
 })
@@ -20,15 +22,18 @@ export default function Hero() {
   return (
     <section
       id="hero"
-      className="min-h-screen flex items-center relative overflow-hidden bg-[#f5f5f5] dark:bg-[#0a0a0a]"
+      className="
+        min-h-screen flex items-center relative overflow-hidden
+        bg-slate-50
+        dark:bg-[#0a0a0a]
+      "
     >
-      {/* cleaner background (no grid) */}
+      {/* soft background glow */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute -top-24 left-1/4 w-[520px] h-[520px] bg-cyan-500/10 dark:bg-cyan-500/7 rounded-full blur-3xl" />
         <div className="absolute -bottom-28 right-1/5 w-[460px] h-[460px] bg-sky-400/10 dark:bg-sky-400/6 rounded-full blur-3xl" />
       </div>
 
-      {/* tighter layout: custom columns + smaller gap */}
       <div className="w-full relative z-10 pt-16">
         <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-[1.15fr_0.85fr] items-center gap-4 md:gap-6">
           {/* LEFT */}
@@ -39,7 +44,17 @@ export default function Hero() {
                 <div className="w-2 h-2 rounded-full bg-cyan-500/60 animate-pulse" />
                 <div className="w-2 h-2 rounded-full bg-cyan-500/30 animate-pulse" />
               </div>
-              <span className="text-cyan-600 dark:text-cyan-400 text-xs font-mono tracking-widest uppercase border border-cyan-500/30 bg-cyan-500/5 px-3 py-1 rounded-full">
+
+              <span
+                className="
+                  text-cyan-700 dark:text-cyan-400
+                  text-xs font-mono tracking-widest uppercase
+                  border border-cyan-500/30
+                  bg-white/70 dark:bg-cyan-500/5
+                  backdrop-blur
+                  px-3 py-1 rounded-full
+                "
+              >
                 {t.hero.available}
               </span>
             </div>
@@ -48,21 +63,23 @@ export default function Hero() {
               className="text-6xl md:text-7xl font-bold leading-none mb-4"
               style={{ fontFamily: 'var(--font-syne)' }}
             >
-              <span className="text-gray-900 dark:text-white block">{t.hero.firstName}</span>
+              <span className="text-slate-900 dark:text-white block">
+                {t.hero.firstName}
+              </span>
               <span className="bg-gradient-to-r from-cyan-500 via-cyan-400 to-sky-400 bg-clip-text text-transparent block">
                 {t.hero.lastName}
               </span>
             </h1>
 
             <p
-              className="text-base font-medium text-cyan-600 dark:text-cyan-400 mb-6 tracking-widest uppercase"
+              className="text-base font-medium text-cyan-700 dark:text-cyan-400 mb-6 tracking-widest uppercase"
               style={{ fontFamily: 'var(--font-mono)' }}
             >
               {t.hero.tagline}
             </p>
 
             <p
-              className="text-sm leading-7 mb-10 max-w-lg text-gray-600 dark:text-zinc-400"
+              className="text-sm leading-7 mb-10 max-w-lg text-slate-600 dark:text-zinc-400"
               style={{ fontFamily: 'var(--font-mono)' }}
             >
               {t.hero.bio_lines.map((line, i) => (
@@ -71,10 +88,12 @@ export default function Hero() {
                   <br />
                 </span>
               ))}
-              <span className="text-cyan-600 dark:text-cyan-400 font-medium">{t.hero.bio_highlight}</span>
+              <span className="text-cyan-700 dark:text-cyan-400 font-medium">
+                {t.hero.bio_highlight}
+              </span>
             </p>
 
-            {/* Buttons: mono font + tighter look */}
+            {/* Buttons */}
             <div className="flex flex-wrap gap-3 mb-12">
               <a href="#projects">
                 <Button
@@ -94,14 +113,15 @@ export default function Hero() {
                 </Button>
               </a>
 
-              <a href="/cv.pdf" target="_blank" rel="noreferrer">
+              {/* CV download: put cv.pdf inside /public */}
+              <a href="/cv.pdf" download>
                 <Button
                   variant="outline"
                   className="
-                    border-gray-400 dark:border-zinc-700
-                    text-gray-800 dark:text-white
-                    bg-white/40 dark:bg-white/5
-                    hover:bg-gray-200/60 dark:hover:bg-white/10
+                    border-slate-300 dark:border-zinc-700
+                    text-slate-900 dark:text-white
+                    bg-white dark:bg-white/5
+                    hover:bg-slate-100 dark:hover:bg-white/10
                     hover:border-cyan-500 dark:hover:border-cyan-500
                     px-7 py-5 rounded-full
                     flex items-center gap-2
@@ -119,44 +139,81 @@ export default function Hero() {
 
             {/* Social icons */}
             <div className="flex items-center gap-3">
-              <a
-                href="https://github.com/Sankalpa7"
-                target="_blank"
-                rel="noreferrer"
-                className="w-11 h-11 rounded-full border border-gray-300 dark:border-zinc-800 flex items-center justify-center text-gray-500 dark:text-zinc-500 hover:text-cyan-400 hover:border-cyan-400 transition-all duration-200 bg-white/30 dark:bg-white/5"
-              >
-                <Github className="w-5 h-5" />
-              </a>
-              <a
-                href="https://www.linkedin.com/in/sankalpaneupane7/"
-                target="_blank"
-                rel="noreferrer"
-                className="w-11 h-11 rounded-full border border-gray-300 dark:border-zinc-800 flex items-center justify-center text-gray-500 dark:text-zinc-500 hover:text-cyan-400 hover:border-cyan-400 transition-all duration-200 bg-white/30 dark:bg-white/5"
-              >
-                <Linkedin className="w-5 h-5" />
-              </a>
-              <a
-                href="mailto:sankalpaneupane7@gmail.com"
-                className="w-11 h-11 rounded-full border border-gray-300 dark:border-zinc-800 flex items-center justify-center text-gray-500 dark:text-zinc-500 hover:text-cyan-400 hover:border-cyan-400 transition-all duration-200 bg-white/30 dark:bg-white/5"
-              >
-                <Mail className="w-5 h-5" />
-              </a>
+              {[
+                {
+                  href: 'https://github.com/Sankalpa7',
+                  icon: <Github className="w-5 h-5" />,
+                  label: 'GitHub',
+                },
+                {
+                  href: 'https://www.linkedin.com/in/sankalpaneupane7/',
+                  icon: <Linkedin className="w-5 h-5" />,
+                  label: 'LinkedIn',
+                },
+                {
+                  href: 'mailto:sankalpaneupane7@gmail.com',
+                  icon: <Mail className="w-5 h-5" />,
+                  label: 'Email',
+                },
+              ].map((item) => (
+                <a
+                  key={item.label}
+                  href={item.href}
+                  target={item.href.startsWith('http') ? '_blank' : undefined}
+                  rel={item.href.startsWith('http') ? 'noreferrer' : undefined}
+                  className="
+                    w-11 h-11 rounded-full
+                    border border-slate-200 dark:border-zinc-800
+                    flex items-center justify-center
+                    text-slate-600 dark:text-zinc-500
+                    hover:text-cyan-700 dark:hover:text-cyan-400
+                    hover:border-cyan-400
+                    transition-all duration-200
+                    bg-white dark:bg-white/5
+                    shadow-sm dark:shadow-none
+                  "
+                >
+                  {item.icon}
+                </a>
+              ))}
             </div>
           </div>
 
-          {/* RIGHT (closer + less padding) */}
+          {/* RIGHT */}
           <div className="hidden md:flex items-center justify-center px-4 md:pr-6 xl:pr-10 py-12">
-            <TechSphere />
+            {/* ✅ Final frame: roomy + clips overflow + centers sphere */}
+            <div
+              className="
+                relative
+                w-[500px] h-[500px]
+                rounded-[28px]
+                bg-white
+                border border-slate-200
+                shadow-[0_22px_70px_rgba(2,6,23,0.08)]
+                overflow-hidden
+                dark:bg-transparent
+                dark:border-transparent
+                dark:shadow-none
+              "
+            >
+              {/* subtle radial glow only for light */}
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(14,165,233,0.08)_0%,transparent_65%)] dark:hidden" />
+
+              {/* inner padding so nothing touches the edges */}
+              <div className="relative w-full h-full flex items-center justify-center pt-4">
+                <TechSphere />
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Scroll indicator */}
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
-        <span className="text-gray-400 dark:text-zinc-600 text-xs font-mono tracking-widest">
+        <span className="text-slate-400 dark:text-zinc-600 text-xs font-mono tracking-widest">
           {t.hero.scroll}
         </span>
-        <div className="w-px h-10 bg-gradient-to-b from-gray-400 dark:from-zinc-600 to-transparent animate-pulse" />
+        <div className="w-px h-10 bg-gradient-to-b from-slate-400 dark:from-zinc-600 to-transparent animate-pulse" />
       </div>
     </section>
   )

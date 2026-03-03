@@ -96,7 +96,12 @@ const en = {
     title: 'Skills',
     subtitle:
       'Technologies I work with — the icons orbit like a wheel and the highlighted tile shows the active skill.',
-    cats: {
+    categoryDescriptions: {
+      web: "Building fast, modern interfaces — from React components to full Next.js applications.",
+      data: "From raw datasets to trained models, working with supervised learning and real-world data.",
+      tools: "Comfortable in enterprise IT environments — from Azure AD and Linux to everyday tooling.",
+    },
+      cats: {
       web: 'Web & Frontend',
       data: 'Data & ML',
       tools: 'Tools & IT',

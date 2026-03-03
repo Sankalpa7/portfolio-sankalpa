@@ -36,9 +36,10 @@ type Edu = {
 }
 
 const typeColors: Record<string, string> = {
-  Research: 'text-cyan-500   border-cyan-500/30   bg-cyan-500/5',
-  Promoted: 'text-amber-500  border-amber-500/30  bg-amber-500/5',
-  Engineering: 'text-purple-500 border-purple-500/30 bg-purple-500/5',
+  Research: 'text-cyan-700 dark:text-cyan-300 border-cyan-500/30 bg-cyan-500/8 dark:bg-cyan-500/10',
+  Promoted: 'text-amber-700 dark:text-amber-300 border-amber-500/30 bg-amber-500/8 dark:bg-amber-500/10',
+  Engineering:
+    'text-purple-700 dark:text-purple-300 border-purple-500/30 bg-purple-500/8 dark:bg-purple-500/10',
 }
 
 export default function Experience() {
@@ -276,64 +277,85 @@ export default function Experience() {
         ]
 
   return (
-    <section id="experience" className="py-32 bg-white dark:bg-[#0a0a0a] relative overflow-hidden">
+    <section id="experience" className="py-32 bg-slate-50 dark:bg-[#0a0a0a] relative overflow-hidden">
+      {/* glows */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/3 right-0 w-[500px] h-[500px] bg-cyan-500/3 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 left-0 w-64 h-64 bg-purple-500/3 rounded-full blur-3xl" />
+        <div className="absolute top-1/3 right-0 w-[500px] h-[500px] bg-cyan-500/8 dark:bg-cyan-500/4 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 left-0 w-64 h-64 bg-purple-500/7 dark:bg-purple-500/4 rounded-full blur-3xl" />
       </div>
 
-      <div className="max-w-6xl mx-auto px-16 xl:px-24 relative z-10">
+      <div className="max-w-6xl mx-auto px-6 md:px-10 xl:px-24 relative z-10">
+        {/* header */}
         <div className="flex items-center gap-4 mb-16">
-          <span className="text-cyan-500 text-sm font-mono tracking-widest">{t.experience.section}</span>
-          <div className="w-12 h-px bg-cyan-500" />
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white" style={{ fontFamily: 'var(--font-syne)' }}>
+          <span className="text-cyan-600 dark:text-cyan-400 text-sm font-mono tracking-widest">
+            {t.experience.section}
+          </span>
+          <div className="w-12 h-px bg-cyan-500/80" />
+          <h2
+            className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white"
+            style={{ fontFamily: 'var(--font-syne)' }}
+          >
             {t.experience.title}
           </h2>
-          <div className="flex-1 h-px bg-gray-200 dark:bg-zinc-800" />
+          <div className="flex-1 h-px bg-slate-200 dark:bg-zinc-800" />
         </div>
 
+        {/* timeline */}
         <div className="relative">
           <div
             className="absolute top-0 bottom-0 w-px hidden md:block"
             style={{
               left: '70px',
               background:
-                'linear-gradient(to bottom, transparent, rgba(6,182,212,0.1), rgba(6,182,212,0.3), rgba(6,182,212,0.1), transparent)',
+                'linear-gradient(to bottom, transparent, rgba(6,182,212,0.10), rgba(6,182,212,0.28), rgba(6,182,212,0.10), transparent)',
             }}
           />
 
           <div className="flex flex-col gap-0">
             {experiences.map((exp) => {
               const isOpen = expandedId === exp.id
+
               return (
                 <div key={exp.id} className="grid grid-cols-1 md:grid-cols-[140px_1fr] gap-0 md:gap-8 py-6">
+                  {/* year bubble */}
                   <div className="hidden md:flex flex-col items-center gap-2 pt-1">
                     <div
                       className="w-11 h-11 rounded-full flex items-center justify-center text-xs font-mono font-semibold border z-10 transition-all duration-300"
                       style={{
-                        background: isOpen ? exp.color + '20' : 'rgba(255,255,255,0.03)',
-                        borderColor: isOpen ? exp.color : 'rgba(255,255,255,0.07)',
-                        color: isOpen ? exp.color : '#71717a',
-                        backdropFilter: 'blur(10px)',
+                        background: isOpen ? exp.color + '14' : 'rgba(255,255,255,0.70)',
+                        borderColor: isOpen ? exp.color + '55' : 'rgba(15,23,42,0.12)',
+                        color: isOpen ? exp.color : '#64748b',
+                      }}
+                    />
+                    {/* put year text inside (kept separate so light/dark readable) */}
+                    <div
+                      className="absolute w-11 h-11 rounded-full flex items-center justify-center text-xs font-mono font-semibold"
+                      style={{
+                        transform: 'translateY(0px)',
+                        color: isOpen ? exp.color : '#64748b',
                       }}
                     >
                       {exp.year}
                     </div>
                   </div>
 
+                  {/* card */}
                   <div
                     onClick={() => toggle(exp.id)}
-                    className="rounded-2xl cursor-pointer overflow-hidden transition-all duration-300 relative"
+                    className="
+                      rounded-2xl cursor-pointer overflow-hidden transition-all duration-300 relative
+                      border border-slate-200/70 dark:border-white/10
+                      bg-white/70 dark:bg-white/5
+                      backdrop-blur
+                    "
                     style={{
-                      background: 'rgba(255,255,255,0.03)',
-                      border: `1px solid ${isOpen ? exp.color + '40' : 'rgba(255,255,255,0.07)'}`,
-                      backdropFilter: 'blur(10px)',
                       transform: isOpen ? 'translateX(6px)' : 'translateX(0)',
+                      borderColor: isOpen ? exp.color + '55' : undefined,
                     }}
                   >
                     <div
                       className="absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl pointer-events-none transition-opacity duration-300"
-                      style={{ background: exp.color, opacity: isOpen ? 0.06 : 0 }}
+                      style={{ background: exp.color, opacity: isOpen ? 0.10 : 0 }}
                     />
 
                     <div className="p-6 md:p-7 relative">
@@ -342,7 +364,10 @@ export default function Experience() {
                           <div className="flex items-center gap-3 flex-wrap mb-1.5">
                             <h3
                               className="text-lg font-bold transition-colors duration-200"
-                              style={{ fontFamily: 'var(--font-syne)', color: isOpen ? exp.color : '#fff' }}
+                              style={{
+                                fontFamily: 'var(--font-syne)',
+                                color: isOpen ? exp.color : undefined,
+                              }}
                             >
                               {exp.role}
                             </h3>
@@ -350,7 +375,11 @@ export default function Experience() {
                             {exp.promoted && (
                               <span
                                 className="flex items-center gap-1 text-xs font-mono px-2 py-0.5 rounded-full border"
-                                style={{ color: exp.color, borderColor: exp.color + '40', background: exp.color + '08' }}
+                                style={{
+                                  color: exp.color,
+                                  borderColor: exp.color + '55',
+                                  background: exp.color + '10',
+                                }}
                               >
                                 <TrendingUp className="w-3 h-3" />
                                 {locale === 'fi' ? 'Ylennys' : 'Promoted'}
@@ -362,45 +391,54 @@ export default function Experience() {
                             <span className="text-sm font-mono font-semibold" style={{ color: exp.color }}>
                               {exp.company}
                             </span>
-                            {exp.sub && <span className="text-xs font-mono text-zinc-600">{exp.sub}</span>}
-                            <span className="text-xs font-mono text-zinc-600">{exp.location}</span>
-                            <span className="text-xs font-mono text-zinc-700">{exp.period}</span>
+                            {exp.sub && (
+                              <span className="text-xs font-mono text-slate-500 dark:text-zinc-500">{exp.sub}</span>
+                            )}
+                            <span className="text-xs font-mono text-slate-500 dark:text-zinc-500">{exp.location}</span>
+                            <span className="text-xs font-mono text-slate-500 dark:text-zinc-500">{exp.period}</span>
                           </div>
                         </div>
 
                         <div className="flex items-center gap-3 shrink-0">
-                          <span className={`text-xs font-mono px-2.5 py-1 rounded-full border hidden sm:inline-flex ${typeColors[exp.type]}`}>
+                          <span
+                            className={`text-xs font-mono px-2.5 py-1 rounded-full border hidden sm:inline-flex ${typeColors[exp.type]}`}
+                          >
                             {exp.type}
                           </span>
                           <ChevronDown
-                            className="w-4 h-4 text-zinc-500 transition-transform duration-300"
+                            className="w-4 h-4 text-slate-500 dark:text-zinc-500 transition-transform duration-300"
                             style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
                           />
                         </div>
                       </div>
 
-                      <p className="text-sm font-mono text-zinc-500 leading-6 mb-2">{exp.summary}</p>
+                      <p className="text-sm font-mono text-slate-600 dark:text-zinc-500 leading-6 mb-2">
+                        {exp.summary}
+                      </p>
 
                       {isOpen && (
-                        <div className="border-t pt-5 mt-3" style={{ borderColor: exp.color + '20' }}>
+                        <div className="border-t pt-5 mt-3" style={{ borderColor: exp.color + '25' }}>
                           {exp.promoted && exp.promoFrom && exp.promoTo && (
                             <div
                               className="flex items-center gap-3 mb-4 px-4 py-3 rounded-xl"
-                              style={{ background: exp.color + '08', border: `1px solid ${exp.color}20` }}
+                              style={{
+                                background: exp.color + '10',
+                                border: `1px solid ${exp.color}25`,
+                              }}
                             >
                               <TrendingUp className="w-4 h-4 shrink-0" style={{ color: exp.color }} />
                               <span className="text-xs font-mono" style={{ color: exp.color }}>
-                                {locale === 'fi' ? 'Urapolku:' : 'Career path:'} &nbsp;
-                                <span className="text-zinc-500">{exp.promoFrom}</span>
+                                {locale === 'fi' ? 'Urapolku:' : 'Career path:'}&nbsp;
+                                <span className="text-slate-600 dark:text-zinc-500">{exp.promoFrom}</span>
                                 <span className="mx-2">→</span>
                                 <span className="font-semibold">{exp.promoTo}</span>
                               </span>
                             </div>
                           )}
 
-                          <div className="space-y-3 mb-5 pl-4 border-l-2" style={{ borderColor: exp.color + '30' }}>
+                          <div className="space-y-3 mb-5 pl-4 border-l-2" style={{ borderColor: exp.color + '35' }}>
                             {exp.bullets.map((b, i) => (
-                              <p key={i} className="text-xs font-mono text-zinc-500 leading-6">
+                              <p key={i} className="text-xs font-mono text-slate-600 dark:text-zinc-500 leading-6">
                                 {b}
                               </p>
                             ))}
@@ -411,7 +449,11 @@ export default function Experience() {
                               <span
                                 key={tag}
                                 className="text-xs font-mono px-2.5 py-1 rounded-full border"
-                                style={{ borderColor: exp.color + '30', color: exp.color, background: exp.color + '08' }}
+                                style={{
+                                  borderColor: exp.color + '35',
+                                  color: exp.color,
+                                  background: exp.color + '10',
+                                }}
                               >
                                 {tag}
                               </span>
@@ -430,32 +472,69 @@ export default function Experience() {
         {/* Education */}
         <div className="mt-24">
           <div className="flex items-center gap-4 mb-12">
-            <span className="text-cyan-500 text-sm font-mono tracking-widest">{locale === 'fi' ? '// koulutus' : '// edu'}</span>
+            <span className="text-cyan-600 dark:text-cyan-400 text-sm font-mono tracking-widest">
+              {locale === 'fi' ? '// koulutus' : '// edu'}
+            </span>
             <div className="w-8 h-px bg-cyan-500/50" />
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white" style={{ fontFamily: 'var(--font-syne)' }}>
+            <h3
+              className="text-xl font-bold text-slate-900 dark:text-white"
+              style={{ fontFamily: 'var(--font-syne)' }}
+            >
               {locale === 'fi' ? 'Koulutus' : 'Education'}
             </h3>
-            <div className="flex-1 h-px bg-gray-200 dark:bg-zinc-800" />
+            <div className="flex-1 h-px bg-slate-200 dark:bg-zinc-800" />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {education.map((edu) => (
               <div
                 key={edu.id}
-                className="relative rounded-2xl border overflow-hidden group transition-all duration-300 hover:-translate-y-1"
-                style={{ background: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(10px)' }}
+                className="
+                  relative rounded-2xl overflow-hidden group transition-all duration-300 hover:-translate-y-1
+                  border border-slate-200/70 dark:border-white/10
+                  bg-white/70 dark:bg-white/5
+                  backdrop-blur
+                "
+                style={{ borderColor: undefined }}
               >
                 <div
-                  className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
-                  style={{ border: `1px solid ${edu.color}40` }}
+                  className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+                  style={{ border: `1px solid ${edu.color}55`, borderRadius: '16px' }}
                 />
                 <div
                   className="absolute top-0 right-0 w-40 h-40 rounded-full blur-3xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                  style={{ background: edu.color }}
+                  style={{ background: edu.color, opacity: 0.12 }}
                 />
+
+                {/* watermark (fix for light: stronger stroke) */}
                 <span
                   className="absolute -bottom-3 -right-2 text-8xl font-black select-none pointer-events-none"
-                  style={{ fontFamily: 'var(--font-syne)', color: 'transparent', WebkitTextStroke: '1px rgba(255,255,255,0.04)', lineHeight: '1' }}
+                  style={{
+                    fontFamily: 'var(--font-syne)',
+                    color: 'transparent',
+                    WebkitTextStroke: '1px rgba(15,23,42,0.10)',
+                    lineHeight: '1',
+                  }}
+                />
+                <span
+                  className="absolute -bottom-3 -right-2 text-8xl font-black select-none pointer-events-none hidden dark:block"
+                  style={{
+                    fontFamily: 'var(--font-syne)',
+                    color: 'transparent',
+                    WebkitTextStroke: '1px rgba(255,255,255,0.06)',
+                    lineHeight: '1',
+                  }}
+                >
+                  {edu.wm}
+                </span>
+                <span
+                  className="absolute -bottom-3 -right-2 text-8xl font-black select-none pointer-events-none dark:hidden"
+                  style={{
+                    fontFamily: 'var(--font-syne)',
+                    color: 'transparent',
+                    WebkitTextStroke: '1px rgba(15,23,42,0.10)',
+                    lineHeight: '1',
+                  }}
                 >
                   {edu.wm}
                 </span>
@@ -464,37 +543,49 @@ export default function Experience() {
                   <div className="flex items-center gap-3 mb-5 flex-wrap">
                     <span
                       className="text-xs font-mono px-3 py-1 rounded-full border"
-                      style={{ color: edu.color, borderColor: edu.color + '40', background: edu.color + '08' }}
+                      style={{
+                        color: edu.color,
+                        borderColor: edu.color + '55',
+                        background: edu.color + '10',
+                      }}
                     >
                       {edu.level}
                     </span>
-                    <span className="text-xs font-mono text-zinc-600">{edu.period}</span>
+
+                    <span className="text-xs font-mono text-slate-500 dark:text-zinc-500">{edu.period}</span>
+
                     {edu.current && (
-                      <span className="flex items-center gap-1.5 text-xs font-mono text-cyan-500">
+                      <span className="flex items-center gap-1.5 text-xs font-mono text-cyan-700 dark:text-cyan-400">
                         <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse" />
                         {locale === 'fi' ? 'Kesken' : 'In progress'}
                       </span>
                     )}
                   </div>
 
-                  <h4 className="text-xl font-black mb-2 text-white" style={{ fontFamily: 'var(--font-syne)' }}>
+                  {/* fix: visible title in light */}
+                  <h4
+                    className="text-xl font-black mb-2 text-slate-900 dark:text-white"
+                    style={{ fontFamily: 'var(--font-syne)' }}
+                  >
                     {edu.degree}
                   </h4>
+
                   <p className="text-sm font-mono font-semibold mb-2" style={{ color: edu.color }}>
                     {edu.school}
                   </p>
-                  <p className="text-xs font-mono text-zinc-600 italic mb-4">{edu.focus}</p>
-                  <p className="text-xs font-mono text-zinc-700">📍 {edu.location}</p>
+
+                  <p className="text-xs font-mono text-slate-600 dark:text-zinc-500 italic mb-4">{edu.focus}</p>
+                  <p className="text-xs font-mono text-slate-600 dark:text-zinc-500">📍 {edu.location}</p>
                 </div>
               </div>
             ))}
           </div>
 
           <div className="mt-8 flex items-center justify-between">
-            <span className="text-xs font-mono text-zinc-800">
+            <span className="text-xs font-mono text-slate-500 dark:text-zinc-500">
               {locale === 'fi' ? '// perusta → erikoistuminen' : '// foundation → specialization'}
             </span>
-            <span className="text-xs font-mono text-zinc-800">2017 — present</span>
+            <span className="text-xs font-mono text-slate-500 dark:text-zinc-500">2017 — present</span>
           </div>
         </div>
       </div>

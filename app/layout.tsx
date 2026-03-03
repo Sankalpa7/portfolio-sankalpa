@@ -22,7 +22,8 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: 'Sankalpa Neupane — Computer Engineering',
-  description: 'Personal portfolio of Sankalpa Neupane, Computer Engineering Masters student and Full Stack Developer.',
+  description:
+    'Personal portfolio of Sankalpa Neupane, Computer Engineering Masters student and Full Stack Developer.',
 }
 
 export default function RootLayout({
@@ -32,7 +33,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} ${syne.variable} ${jetbrainsMono.variable} bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-gray-100 transition-colors duration-300`}>
+      <body
+        className={`${inter.variable} ${syne.variable} ${jetbrainsMono.variable}
+        bg-slate-50 text-slate-900
+        dark:bg-[#0a0a0a] dark:text-gray-100
+        transition-colors duration-300`}
+      >
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"

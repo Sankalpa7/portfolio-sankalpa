@@ -83,12 +83,11 @@ export default function Skills() {
         ],
       },
     ],
-    [],
+    []
   )
 
   // ---------- Localized helpers ----------
   const catLabel = (id: SkillCategoryConfig['labelKey']) => {
-    // Add these keys in your en.ts / fi.ts (examples below)
     return t.skills.categories?.[id] ?? (id === 'web' ? 'Web & Frontend' : id === 'data' ? 'Data & ML' : 'Tools & IT')
   }
 
@@ -128,7 +127,7 @@ export default function Skills() {
             : `Finalist among 41 teams and winner of the ${t.skills.awards.best} award for the tQit digital queuing system, recognised for technical quality and real-world impact.`,
       },
     ],
-    [locale, t],
+    [locale, t]
   )
 
   const highlightProject = useMemo(
@@ -139,10 +138,9 @@ export default function Skills() {
           ? 'tQit digitalisoi jonottamisen: asiakkaat liittyvät jonoon sovelluksella ja seuraavat paikkaansa reaaliajassa. Henkilökunta näkee jonotilanteen ja kutsuu seuraavan yhdellä painalluksella. Toimin projektipäällikkönä ja front-end -suunnittelijana — koordinoin tiimiä, vedin sprinttejä Scrum/Kanbanilla ja suunnittelin käyttökokemuksen HTML/CSS/JS:llä.'
           : 'The tQit system is a software solution that digitalises and improves the experience of entering a queue for an establishment. Users join through the app and track their position in real time. Staff see a live overview and call the next person with a tap. I led the project in a hybrid product owner and front-end designer role — coordinating the team, running sprints with Scrum/Kanban, and designing the user journey and interface using HTML, CSS and JavaScript.',
     }),
-    [locale],
+    [locale]
   )
 
-  // expose tab switcher on window
   declare global {
     interface Window {
       __skillsSwitchCat__?: (id: CatId) => void
@@ -153,7 +151,6 @@ export default function Skills() {
   const [overlayActive, setOverlayActive] = useState(false)
   const [hasUnlockedOnce, setHasUnlockedOnce] = useState(false)
 
-  // read session flag on mount
   useEffect(() => {
     if (typeof window === 'undefined') return
     const seen = window.sessionStorage.getItem('skillsAwardsSeen')
@@ -163,7 +160,6 @@ export default function Skills() {
     }
   }, [])
 
-  // write session flag when first unlocked
   useEffect(() => {
     if (!hasUnlockedOnce || typeof window === 'undefined') return
     window.sessionStorage.setItem('skillsAwardsSeen', '1')
@@ -205,13 +201,26 @@ export default function Skills() {
       const ncard = document.getElementById(`name-${id}`)
       if (!hub || !oring || !aicon || !ncard) return
 
-      hub.setAttribute('style', [`background: rgba(${cat.rgb},0.1)`, `border-color: rgba(${cat.rgb},0.4)`, `color: ${cat.color}`].join(';'))
-      oring.style.borderColor = `rgba(${cat.rgb},0.08)`
+      hub.setAttribute(
+        'style',
+        [
+          `background: rgba(${cat.rgb},0.10)`,
+          `border-color: rgba(${cat.rgb},0.35)`,
+          `color: ${cat.color}`,
+          // ✅ ensure it looks good in light too:
+          `box-shadow: 0 18px 60px rgba(2,6,23,0.06)`,
+        ].join(';')
+      )
+      oring.style.borderColor = `rgba(${cat.rgb},0.10)`
       aicon.setAttribute(
         'style',
-        [`background: rgba(${cat.rgb},0.12)`, `border-color: rgba(${cat.rgb},0.4)`, `box-shadow: 0 0 24px rgba(${cat.rgb},0.35), 0 0 8px rgba(${cat.rgb},0.2)`].join(';'),
+        [
+          `background: rgba(${cat.rgb},0.12)`,
+          `border-color: rgba(${cat.rgb},0.40)`,
+          `box-shadow: 0 0 24px rgba(${cat.rgb},0.25), 0 0 8px rgba(${cat.rgb},0.16)`,
+        ].join(';')
       )
-      ncard.setAttribute('style', [`color: ${cat.color}`, `border-color: rgba(${cat.rgb},0.3)`, `background: rgba(${cat.rgb},0.06)`].join(';'))
+      ncard.setAttribute('style', [`color: ${cat.color}`, `border-color: rgba(${cat.rgb},0.30)`, `background: rgba(${cat.rgb},0.08)`].join(';'))
     }
 
     function triggerHubPulse(id: CatId) {
@@ -255,10 +264,10 @@ export default function Skills() {
 
       const el = document.createElement('div')
       el.className =
-        'absolute w-14 h-14 rounded-2xl flex items-center justify-center text-2xl border border-white/10 pointer-events-none z-20 bg-white/5 backdrop-blur'
+        'absolute w-14 h-14 rounded-2xl flex items-center justify-center text-2xl border pointer-events-none z-20 bg-white/70 dark:bg-white/5 backdrop-blur'
       el.textContent = emoji
-      el.style.background = `rgba(${cat.rgb},0.08)`
-      el.style.borderColor = `rgba(${cat.rgb},0.2)`
+      el.style.background = `rgba(${cat.rgb},0.10)`
+      el.style.borderColor = `rgba(${cat.rgb},0.22)`
       wrap.appendChild(el)
 
       const startPos = anglePos(startDeg)
@@ -347,7 +356,7 @@ export default function Skills() {
         panel?.classList.add('hidden')
         if (tab) {
           tab.style.background = 'transparent'
-          tab.style.color = '#a1a1aa'
+          tab.style.color = '#64748b' // ✅ better for light
           tab.style.fontWeight = '400'
           tab.style.boxShadow = 'none'
           tab.style.transform = 'translateY(0)'
@@ -361,7 +370,7 @@ export default function Skills() {
         activeTab.style.background = colors[id]
         activeTab.style.color = '#000'
         activeTab.style.fontWeight = '600'
-        activeTab.style.boxShadow = '0 0 0 1px rgba(0,0,0,0.4), 0 10px 25px rgba(0,0,0,0.6)'
+        activeTab.style.boxShadow = '0 0 0 1px rgba(0,0,0,0.12), 0 10px 25px rgba(2,6,23,0.10)'
         activeTab.style.transform = 'translateY(-1px)'
       }
 
@@ -384,7 +393,6 @@ export default function Skills() {
     }
   }, [skillCategories])
 
-  // helper to trigger overlay + sound
   const triggerCelebration = () => {
     if (overlayActive) return
     const audio = document.getElementById('award-sound') as HTMLAudioElement | null
@@ -396,7 +404,7 @@ export default function Skills() {
   }
 
   return (
-    <section id="skills" className="py-24 relative overflow-hidden bg-[#fafafa] text-black dark:bg-[#080808] dark:text-white">
+    <section id="skills" className="py-24 relative overflow-hidden bg-slate-50 text-slate-900 dark:bg-[#080808] dark:text-white">
       {/* background glows */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-0 left-1/4 w-64 h-64 bg-cyan-500/10 dark:bg-cyan-500/10 rounded-full blur-3xl" />
@@ -406,24 +414,24 @@ export default function Skills() {
       <div className="max-w-5xl mx-auto px-6 md:px-10 lg:px-0 relative z-10">
         {/* heading */}
         <div className="flex items-center gap-4 mb-2">
-          <span className="text-cyan-500 text-xs font-mono tracking-[0.25em]">{t.skills.section}</span>
-          <div className="w-10 h-px bg-cyan-500" />
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white" style={{ fontFamily: 'var(--font-syne)' }}>
+          <span className="text-cyan-600 dark:text-cyan-400 text-xs font-mono tracking-[0.25em]">{t.skills.section}</span>
+          <div className="w-10 h-px bg-cyan-500/80" />
+          <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white" style={{ fontFamily: 'var(--font-syne)' }}>
             {t.skills.title}
           </h2>
-          <div className="flex-1 h-px bg-zinc-300 dark:bg-zinc-800" />
+          <div className="flex-1 h-px bg-slate-200 dark:bg-zinc-800" />
         </div>
 
-        <p className="text-xs md:text-sm font-mono text-zinc-700 dark:text-zinc-400 max-w-xl mb-6">{t.skills.subtitle}</p>
+        <p className="text-xs md:text-sm font-mono text-slate-600 dark:text-zinc-400 max-w-xl mb-6">{t.skills.subtitle}</p>
 
         {/* tabs */}
         <div className="mb-8">
-          <div className="inline-flex items-center rounded-lg border border-zinc-300 dark:border-zinc-800 bg-zinc-200/40 dark:bg-black/40 px-1 py-1 gap-1">
+          <div className="inline-flex items-center rounded-lg border border-slate-200 dark:border-zinc-800 bg-white/70 dark:bg-black/40 backdrop-blur px-1 py-1 gap-1">
             {skillCategories.map((cat) => (
               <button
                 key={cat.id}
                 id={`tab-${cat.id}`}
-                className="px-4 py-1.5 text-[11px] font-mono text-zinc-700 dark:text-zinc-500 rounded-md transition-all duration-200"
+                className="px-4 py-1.5 text-[11px] font-mono text-slate-600 dark:text-zinc-500 rounded-md transition-all duration-200 hover:bg-slate-100/70 dark:hover:bg-white/5"
                 onClick={() => window.__skillsSwitchCat__ && window.__skillsSwitchCat__(cat.id)}
               >
                 {catLabel(cat.labelKey)}
@@ -445,12 +453,12 @@ export default function Skills() {
             <div id={`wrap-${cat.id}`} className="relative w-[340px] h-[420px] flex-shrink-0 mx-auto md:mx-0 md:mr-auto -mt-2 md:-mt-4">
               <div
                 id={`oring-${cat.id}`}
-                className="absolute left-1/2 bottom-5 -translate-x-1/2 w-[320px] h-[320px] rounded-full border border-dashed border-black/5 dark:border-white/5 pointer-events-none"
+                className="absolute left-1/2 bottom-5 -translate-x-1/2 w-[320px] h-[320px] rounded-full border border-dashed border-black/10 dark:border-white/5 pointer-events-none"
               />
               <div id={`pulse-${cat.id}`} className="absolute left-1/2 bottom-5 -translate-x-1/2 w-[180px] h-[180px] rounded-full pointer-events-none z-0" />
               <div
                 id={`hub-${cat.id}`}
-                className="absolute left-1/2 bottom-5 -translate-x-1/2 w-[180px] h-[180px] rounded-full flex flex-col items-center justify-center border z-10 gap-1 backdrop-blur-xl transition-shadow"
+                className="absolute left-1/2 bottom-5 -translate-x-1/2 w-[180px] h-[180px] rounded-full flex flex-col items-center justify-center border z-10 gap-1 bg-white/70 dark:bg-white/5 backdrop-blur-xl transition-shadow"
               >
                 <div className="text-3xl">{cat.id === 'web' ? '💻' : cat.id === 'data' ? '📊' : '🛠️'}</div>
                 <div className="text-[10px] font-semibold tracking-[0.18em] text-center leading-snug" style={{ fontFamily: 'var(--font-syne)' }}>
@@ -482,11 +490,11 @@ export default function Skills() {
               >
                 <div
                   id={`name-${cat.id}`}
-                  className="px-3.5 py-1 rounded-md border text-[11px] font-mono bg-black/5 dark:bg-white/5 opacity-0 -translate-y-1 transition-all duration-300"
+                  className="px-3.5 py-1 rounded-md border text-[11px] font-mono bg-white/80 dark:bg-white/5 opacity-0 -translate-y-1 transition-all duration-300"
                 />
                 <div
                   id={`aicon-${cat.id}`}
-                  className="w-16 h-16 rounded-2xl border flex items-center justify-center text-2xl opacity-0 scale-90 transition-all duration-300 hover:scale-105"
+                  className="w-16 h-16 rounded-2xl border flex items-center justify-center text-2xl opacity-0 scale-90 transition-all duration-300"
                 />
               </div>
             </div>
@@ -499,8 +507,7 @@ export default function Skills() {
                   fontFamily: 'var(--font-syne)',
                   WebkitTextStrokeWidth: '1.7px',
                   WebkitTextStrokeColor: cat.color,
-                  opacity: 1,
-                  filter: 'drop-shadow(0 0 20px rgba(0,0,0,0.4))',
+                  filter: 'drop-shadow(0 0 20px rgba(2,6,23,0.10))',
                 }}
               >
                 {cat.number}
@@ -510,7 +517,7 @@ export default function Skills() {
                 {catLabel(cat.labelKey)}
               </h3>
 
-              <p className="text-xs md:text-sm font-mono text-zinc-700 dark:text-zinc-400 mb-6 max-w-md">
+              <p className="text-xs md:text-sm font-mono text-slate-600 dark:text-zinc-400 mb-6 max-w-md">
                 {catDesc(cat.descriptionKey)}
               </p>
 
@@ -532,7 +539,6 @@ export default function Skills() {
         {/* space after wheel */}
         <div className="mt-16 md:mt-20" />
 
-        {/* Big CTA only before first unlock */}
         {!achievementsUnlocked && (
           <motion.div
             className="mb-10 flex flex-col items-center text-center gap-3"
@@ -544,7 +550,7 @@ export default function Skills() {
             <p className="text-[11px] md:text-xs font-mono text-cyan-600 dark:text-cyan-400 tracking-[0.24em] uppercase">
               {t.skills.unlocked_badge ?? (locale === 'fi' ? 'avaa palkinnot' : 'unlocked by skills')}
             </p>
-            <p className="text-xs md:text-sm font-mono text-zinc-700 dark:text-zinc-400 max-w-md">
+            <p className="text-xs md:text-sm font-mono text-slate-600 dark:text-zinc-400 max-w-md">
               {t.skills.unlocked_body ??
                 (locale === 'fi'
                   ? 'Kuin “kuukauden työntekijä” -seinä — mutta tekniikalle. Klikkaa nähdäksesi palkinnot, apurahat ja tQit-tarinan.'
@@ -562,11 +568,17 @@ export default function Skills() {
           </motion.div>
         )}
 
-        {/* Awards section (stays visible once unlocked) */}
-        {achievementsUnlocked && <AchievementsBlock t={t} locale={locale} awardItems={awardItems} highlightProject={highlightProject} onReplay={triggerCelebration} />}
+        {achievementsUnlocked && (
+          <AchievementsBlock
+            t={t}
+            locale={locale}
+            awardItems={awardItems}
+            highlightProject={highlightProject}
+            onReplay={triggerCelebration}
+          />
+        )}
       </div>
 
-      {/* Overlay */}
       <AnimatePresence>
         {overlayActive && (
           <AwardsOverlay
@@ -585,6 +597,8 @@ export default function Skills() {
     </section>
   )
 }
+
+/* ====== overlay + achievements (unchanged logic) ====== */
 
 function AwardsOverlay({ onComplete, t, locale }: { onComplete: () => void; t: any; locale: 'en' | 'fi' }) {
   useEffect(() => {
@@ -677,7 +691,6 @@ function AchievementsBlock({
       viewport={{ once: true, margin: '-120px' }}
       transition={{ duration: 0.6, ease: 'easeOut' }}
     >
-      {/* ✅ the “long framer-motion line” you mentioned */}
       <div className="relative mb-8">
         <motion.div
           initial={{ scaleX: 0 }}
@@ -689,28 +702,27 @@ function AchievementsBlock({
       </div>
 
       <div className="flex items-center gap-4 mb-2">
-        <span className="text-cyan-500 text-xs font-mono tracking-[0.25em]">{t.skills.awards.badge}</span>
-        <div className="w-10 h-px bg-cyan-500" />
-        <h3 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white" style={{ fontFamily: 'var(--font-syne)' }}>
+        <span className="text-cyan-600 dark:text-cyan-400 text-xs font-mono tracking-[0.25em]">{t.skills.awards.badge}</span>
+        <div className="w-10 h-px bg-cyan-500/80" />
+        <h3 className="text-xl md:text-2xl font-bold text-slate-900 dark:text-white" style={{ fontFamily: 'var(--font-syne)' }}>
           {t.skills.awards.title}
         </h3>
         <button
           type="button"
           onClick={onReplay}
-          className="ml-auto text-[11px] font-mono text-cyan-500/80 hover:text-cyan-400 underline-offset-4 hover:underline"
+          className="ml-auto text-[11px] font-mono text-cyan-600/80 dark:text-cyan-400/80 hover:text-cyan-700 dark:hover:text-cyan-300 underline-offset-4 hover:underline"
         >
           {t.skills.awards.replay}
         </button>
       </div>
 
-      <p className="text-xs md:text-sm font-mono text-zinc-700 dark:text-zinc-400 max-w-xl mb-8">
+      <p className="text-xs md:text-sm font-mono text-slate-600 dark:text-zinc-400 max-w-xl mb-8">
         {locale === 'fi'
           ? 'Apurahat ja tunnustukset, jotka muovasivat matkaani — tiedekuntatason palkinnoista palkittuun tQit-järjestelmään.'
           : 'Scholarships and recognitions that shaped my journey — from faculty-level awards to building an award-winning digital queuing system.'}
       </p>
 
       <div className="grid grid-cols-1 md:grid-cols-[1.1fr_minmax(0,1.2fr)] gap-8 md:gap-12 items-start">
-        {/* left side */}
         <motion.div
           initial={{ opacity: 0, x: -24 }}
           whileInView={{ opacity: 1, x: 0 }}
@@ -724,10 +736,10 @@ function AchievementsBlock({
               whileInView={{ opacity: 1, y: 0, rotate: 0, scale: 1 }}
               viewport={{ once: true, margin: '-120px' }}
               transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.15 }}
-              className="rounded-2xl border border-zinc-200 bg-white/80 dark:border-zinc-800 dark:bg-white/5 px-5 py-4 shadow-sm"
+              className="rounded-2xl border border-slate-200 bg-white/80 dark:border-zinc-800 dark:bg-white/5 px-5 py-4 shadow-sm"
             >
               <p className="text-3xl font-extrabold text-cyan-600 dark:text-cyan-400">2</p>
-              <p className="text-[11px] font-mono text-zinc-600 dark:text-zinc-400 uppercase tracking-[0.18em]">
+              <p className="text-[11px] font-mono text-slate-600 dark:text-zinc-400 uppercase tracking-[0.18em]">
                 {t.skills.awards.major}
               </p>
             </motion.div>
@@ -737,10 +749,10 @@ function AchievementsBlock({
               whileInView={{ opacity: 1, y: 0, rotate: 0, scale: 1 }}
               viewport={{ once: true, margin: '-120px' }}
               transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.27 }}
-              className="rounded-2xl border border-zinc-200 bg-white/80 dark:border-zinc-800 dark:bg-white/5 px-5 py-4 shadow-sm"
+              className="rounded-2xl border border-slate-200 bg-white/80 dark:border-zinc-800 dark:bg-white/5 px-5 py-4 shadow-sm"
             >
               <p className="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400">1st</p>
-              <p className="text-[11px] font-mono text-zinc-600 dark:text-zinc-400 uppercase tracking-[0.18em]">
+              <p className="text-[11px] font-mono text-slate-600 dark:text-zinc-400 uppercase tracking-[0.18em]">
                 {t.skills.awards.best}
               </p>
             </motion.div>
@@ -751,19 +763,18 @@ function AchievementsBlock({
             whileInView={{ opacity: 1, y: 0, rotate: 0, scale: 1 }}
             viewport={{ once: true, margin: '-120px' }}
             transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.4 }}
-            className="rounded-2xl border border-zinc-200 bg-white/90 dark:border-zinc-800 dark:bg-white/5 px-6 py-5 shadow-sm"
+            className="rounded-2xl border border-slate-200 bg-white/90 dark:border-zinc-800 dark:bg-white/5 px-6 py-5 shadow-sm"
           >
             <p className="text-[11px] font-mono tracking-[0.2em] text-cyan-600 dark:text-cyan-400 uppercase mb-2">
               {t.skills.awards.featured}
             </p>
-            <h4 className="text-sm md:text-base font-semibold text-gray-900 dark:text-white mb-2" style={{ fontFamily: 'var(--font-syne)' }}>
+            <h4 className="text-sm md:text-base font-semibold text-slate-900 dark:text-white mb-2" style={{ fontFamily: 'var(--font-syne)' }}>
               {highlightProject.name}
             </h4>
-            <p className="text-xs md:text-sm font-mono text-zinc-700 dark:text-zinc-400 leading-relaxed">{highlightProject.body}</p>
+            <p className="text-xs md:text-sm font-mono text-slate-600 dark:text-zinc-400 leading-relaxed">{highlightProject.body}</p>
           </motion.div>
         </motion.div>
 
-        {/* right side timeline */}
         <motion.div
           initial={{ opacity: 0, x: 24 }}
           whileInView={{ opacity: 1, x: 0 }}
@@ -786,17 +797,17 @@ function AchievementsBlock({
                 className="relative pl-10"
               >
                 <div className="absolute left-[2px] top-3 w-2 h-2 rounded-full bg-cyan-500 shadow-[0_0_0_4px_rgba(34,211,238,0.18)]" />
-                <div className="rounded-2xl border border-zinc-200 bg-white/90 dark:border-zinc-800 dark:bg-white/5 px-5 py-4 shadow-sm">
+                <div className="rounded-2xl border border-slate-200 bg-white/90 dark:border-zinc-800 dark:bg-white/5 px-5 py-4 shadow-sm">
                   <div className="flex items-center justify-between gap-3 mb-1">
-                    <span className="text-[11px] font-mono text-zinc-500 dark:text-zinc-500">{award.year}</span>
-                    <span className="text-[10px] font-mono uppercase tracking-[0.18em] px-2 py-1 rounded-full border border-cyan-500/40 text-cyan-600 dark:text-cyan-400 bg-cyan-500/5 dark:bg-cyan-500/10">
+                    <span className="text-[11px] font-mono text-slate-500 dark:text-zinc-500">{award.year}</span>
+                    <span className="text-[10px] font-mono uppercase tracking-[0.18em] px-2 py-1 rounded-full border border-cyan-500/40 text-cyan-700 dark:text-cyan-400 bg-cyan-500/8 dark:bg-cyan-500/10">
                       {award.type}
                     </span>
                   </div>
-                  <h4 className="text-sm md:text-[15px] font-semibold text-gray-900 dark:text-white mb-1" style={{ fontFamily: 'var(--font-syne)' }}>
+                  <h4 className="text-sm md:text-[15px] font-semibold text-slate-900 dark:text-white mb-1" style={{ fontFamily: 'var(--font-syne)' }}>
                     {award.title}
                   </h4>
-                  <p className="text-xs md:text-sm font-mono text-zinc-700 dark:text-zinc-400 leading-relaxed">{award.body}</p>
+                  <p className="text-xs md:text-sm font-mono text-slate-600 dark:text-zinc-400 leading-relaxed">{award.body}</p>
                 </div>
               </motion.div>
             ))}

@@ -133,6 +133,15 @@ export default function Contact() {
     setYear(new Date().getFullYear())
   }, [])
 
+  // ✅ UX: smooth scroll to contact section after submit success
+  useEffect(() => {
+    if (!submitted) return
+    window.scrollTo({
+      top: document.getElementById('contact')?.offsetTop || 0,
+      behavior: 'smooth',
+    })
+  }, [submitted])
+
   const handleMessageChange = (val: string) => {
     const trimmed = val.length > MESSAGE_MAX ? val.slice(0, MESSAGE_MAX) : val
     setForm((f) => ({ ...f, message: trimmed }))
@@ -169,7 +178,7 @@ export default function Contact() {
         t?.contact?.error_msg ??
           (lang === 'fi'
             ? 'Viestin lähetys epäonnistui. Yritä uudelleen hetken kuluttua.'
-            : 'Message failed to send. Please try again in a moment.')
+            : 'Message failed to send. Please try again in a moment.'),
       )
     } finally {
       setIsSubmitting(false)
@@ -179,23 +188,18 @@ export default function Contact() {
   const handleReset = () => {
     const newId = generateTicketId()
     setTicketId(newId)
+    setLastTicketId(newId) // ✅ keep consistent
     setForm(INITIAL_FORM)
     setSubmitError('')
     setSubmitted(false)
   }
 
-  const submitIdle =
-    t?.contact?.submit_idle ?? (lang === 'fi' ? 'LÄHETÄ' : 'SEND')
-  const submitHover =
-    t?.contact?.submit_hover ?? (lang === 'fi' ? 'LÄHETETÄÄN' : 'SENDING')
-  const emailPh =
-    t?.contact?.field_email_placeholder ?? (lang === 'fi' ? 'sinun@email.fi' : 'you@example.com')
-  const subjectPh =
-    t?.contact?.field_subject_placeholder ?? (lang === 'fi' ? 'Aihe…' : 'Subject…')
-  const messagePh =
-    t?.contact?.field_message_placeholder ?? (lang === 'fi' ? 'Kirjoita viestisi…' : 'Write your message…')
-  const attachPh =
-    t?.contact?.attach_placeholder ?? (lang === 'fi' ? 'Portfolio-linkki (valinnainen)' : 'Portfolio URL (optional)')
+  const submitIdle = t?.contact?.submit_idle ?? (lang === 'fi' ? 'LÄHETÄ' : 'SEND')
+  const submitHover = t?.contact?.submit_hover ?? (lang === 'fi' ? 'LÄHETETÄÄN' : 'SENDING')
+  const emailPh = t?.contact?.field_email_placeholder ?? (lang === 'fi' ? 'sinun@email.fi' : 'you@example.com')
+  const subjectPh = t?.contact?.field_subject_placeholder ?? (lang === 'fi' ? 'Aihe…' : 'Subject…')
+  const messagePh = t?.contact?.field_message_placeholder ?? (lang === 'fi' ? 'Kirjoita viestisi…' : 'Write your message…')
+  const attachPh = t?.contact?.attach_placeholder ?? (lang === 'fi' ? 'Portfolio-linkki (valinnainen)' : 'Portfolio URL (optional)')
 
   return (
     <section id="contact" className="py-24 bg-[#f5f5f5] dark:bg-[#050505] relative overflow-hidden">
@@ -208,14 +212,9 @@ export default function Contact() {
       <div className="max-w-6xl mx-auto px-6 md:px-10 lg:px-6 xl:px-0 relative z-10">
         {/* heading */}
         <div className="flex items-center gap-4 mb-3">
-          <span className="text-cyan-500 text-xs font-mono tracking-[0.25em]">
-            {t?.contact?.section ?? '// 06'}
-          </span>
+          <span className="text-cyan-500 text-xs font-mono tracking-[0.25em]">{t?.contact?.section ?? '// 06'}</span>
           <div className="w-10 h-px bg-cyan-500" />
-          <h2
-            className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white"
-            style={{ fontFamily: 'var(--font-syne)' }}
-          >
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white" style={{ fontFamily: 'var(--font-syne)' }}>
             {t?.contact?.title ?? (lang === 'fi' ? 'Yhteys' : 'Contact')}
           </h2>
           <div className="flex-1 h-px bg-zinc-300 dark:bg-zinc-800" />
@@ -223,14 +222,13 @@ export default function Contact() {
 
         <p className="text-xs md:text-sm font-mono text-zinc-700 dark:text-zinc-400 max-w-xl mb-12">
           {t?.contact?.subtitle ??
-            (lang === 'fi'
-              ? 'Lähetä viesti — vastaan mahdollisimman pian.'
-              : 'Send a message — I’ll get back to you as soon as possible.')}
+            (lang === 'fi' ? 'Lähetä viesti — vastaan mahdollisimman pian.' : 'Send a message — I’ll get back to you as soon as possible.')}
         </p>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)] gap-8 xl:gap-16 items-start">
+        {/* ✅ IMPORTANT: stretch columns so height stays consistent */}
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)] gap-8 xl:gap-16 items-stretch">
           {/* LEFT */}
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4 h-full">
             <div className="relative rounded-[28px] border border-zinc-200 dark:border-zinc-800 bg-white/85 dark:bg-zinc-950/70 px-7 py-7 overflow-hidden">
               <div className="absolute -top-12 -left-12 w-40 h-40 bg-cyan-500/10 rounded-full blur-2xl pointer-events-none" />
 
@@ -244,21 +242,13 @@ export default function Contact() {
                 </span>
               </div>
 
-              <h3
-                className="text-xl md:text-2xl font-bold text-zinc-900 dark:text-white mb-1 leading-snug"
-                style={{ fontFamily: 'var(--font-syne)' }}
-              >
+              <h3 className="text-xl md:text-2xl font-bold text-zinc-900 dark:text-white mb-1 leading-snug" style={{ fontFamily: 'var(--font-syne)' }}>
                 {t?.contact?.heading_line1 ?? (lang === 'fi' ? 'Otetaan yhteyttä' : 'Let’s connect')}
                 <br />
-                <span className="text-[#00E5FF]">
-                  {t?.contact?.heading_name ?? 'Sankalpa'}
-                </span>
+                <span className="text-[#00E5FF]">{t?.contact?.heading_name ?? 'Sankalpa'}</span>
               </h3>
               <p className="text-[13px] font-mono text-zinc-500 dark:text-zinc-400 mb-7">
-                {t?.contact?.heading_sub ??
-                  (lang === 'fi'
-                    ? 'Valitse aihe ja lähetä viesti.'
-                    : 'Pick a category and send a message.')}
+                {t?.contact?.heading_sub ?? (lang === 'fi' ? 'Valitse aihe ja lähetä viesti.' : 'Pick a category and send a message.')}
               </p>
 
               <div className="flex flex-wrap gap-2 mb-6">
@@ -283,7 +273,8 @@ export default function Contact() {
                 })}
               </div>
 
-              <div className="h-px bg-zinc-200 dark:bg-zinc-800 mb-6" />
+              {/* ✅ nicer separator */}
+              <div className="h-px bg-gradient-to-r from-transparent via-zinc-300 dark:via-zinc-700 to-transparent mb-6" />
 
               <div className="flex flex-col gap-3.5 mb-7">
                 <div className="flex items-center gap-2.5">
@@ -295,9 +286,7 @@ export default function Contact() {
                   </div>
                   <span className="text-[13px] font-mono text-zinc-600 dark:text-zinc-400">
                     {t?.contact?.sla_reply ?? (lang === 'fi' ? 'Vastausaika:' : 'Reply time:')}{' '}
-                    <span className="text-zinc-900 dark:text-zinc-200">
-                      {t?.contact?.sla_reply_val ?? (lang === 'fi' ? '24–48h' : '24–48h')}
-                    </span>
+                    <span className="text-zinc-900 dark:text-zinc-200">{t?.contact?.sla_reply_val ?? '24–48h'}</span>
                   </span>
                 </div>
 
@@ -310,9 +299,7 @@ export default function Contact() {
                   </div>
                   <span className="text-[13px] font-mono text-zinc-600 dark:text-zinc-400">
                     {t?.contact?.sla_preferred ?? (lang === 'fi' ? 'Mieluiten:' : 'Preferred:')}{' '}
-                    <span className="text-zinc-900 dark:text-zinc-200">
-                      {t?.contact?.sla_preferred_val ?? (lang === 'fi' ? 'Sähköposti' : 'Email')}
-                    </span>
+                    <span className="text-zinc-900 dark:text-zinc-200">{t?.contact?.sla_preferred_val ?? (lang === 'fi' ? 'Sähköposti' : 'Email')}</span>
                   </span>
                 </div>
 
@@ -325,9 +312,7 @@ export default function Contact() {
                   </div>
                   <span className="text-[13px] font-mono text-zinc-600 dark:text-zinc-400">
                     {t?.contact?.sla_based ?? (lang === 'fi' ? 'Sijainti:' : 'Based in:')}{' '}
-                    <span className="text-zinc-900 dark:text-zinc-200">
-                      {t?.contact?.sla_based_val ?? (lang === 'fi' ? 'Suomi' : 'Finland')}
-                    </span>
+                    <span className="text-zinc-900 dark:text-zinc-200">{t?.contact?.sla_based_val ?? (lang === 'fi' ? 'Suomi' : 'Finland')}</span>
                   </span>
                 </div>
               </div>
@@ -359,9 +344,7 @@ export default function Contact() {
             </div>
 
             <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white/85 dark:bg-zinc-950/70 px-5 py-4 flex items-center gap-3">
-              <p className="text-[11px] font-mono text-zinc-400 uppercase tracking-[0.2em] shrink-0">
-                {t?.contact?.reach ?? (lang === 'fi' ? 'Tavoita' : 'Reach')}
-              </p>
+              <p className="text-[11px] font-mono text-zinc-400 uppercase tracking-[0.2em] shrink-0">{t?.contact?.reach ?? (lang === 'fi' ? 'Tavoita' : 'Reach')}</p>
               <div className="flex gap-2 flex-wrap items-center">
                 {[
                   { label: 'LinkedIn', href: 'https://www.linkedin.com/in/sankalpaneupane7/', colour: '#0ea5e9' },
@@ -384,7 +367,7 @@ export default function Contact() {
           </div>
 
           {/* RIGHT */}
-          <div className="relative">
+          <div className="relative h-full">
             <AnimatePresence mode="wait">
               {submitted ? (
                 <motion.div
@@ -393,7 +376,7 @@ export default function Contact() {
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.98, y: 10 }}
                   transition={{ duration: 0.4, ease: 'easeOut' }}
-                  className="relative rounded-[28px] border border-zinc-200 dark:border-zinc-800 bg-white/85 dark:bg-zinc-950/70 px-8 py-12 flex flex-col items-center text-center overflow-hidden"
+                  className="relative rounded-[28px] border border-zinc-200 dark:border-zinc-800 bg-white/85 dark:bg-zinc-950/70 px-8 py-12 flex flex-col items-center text-center overflow-hidden h-full"
                 >
                   {showConfetti && <ConfettiBurst />}
 
@@ -425,10 +408,7 @@ export default function Contact() {
                     transition={{ delay: 0.28 }}
                     className="text-[13px] font-mono text-zinc-500 dark:text-zinc-400 mb-6 max-w-xs"
                   >
-                    {t?.contact?.success_sub ??
-                      (lang === 'fi'
-                        ? 'Palaan asiaan pian. Tarkista sähköpostisi.'
-                        : "I’ll get back to you soon. Keep an eye on your inbox.")}
+                    {t?.contact?.success_sub ?? (lang === 'fi' ? 'Palaan asiaan pian. Tarkista sähköpostisi.' : "I’ll get back to you soon. Keep an eye on your inbox.")}
                   </motion.p>
 
                   <motion.div
@@ -441,12 +421,7 @@ export default function Contact() {
                     {(t?.contact?.success_ref ?? (lang === 'fi' ? 'Tunnus:' : 'Reference:'))} {lastTicketId}
                   </motion.div>
 
-                  <motion.p
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.44 }}
-                    className="text-[13px] font-mono text-zinc-400 italic mb-10"
-                  >
+                  <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.44 }} className="text-[13px] font-mono text-zinc-400 italic mb-10">
                     {t?.contact?.success_quote ?? '“Thank you for reaching out. – Sankalpa”'}
                   </motion.p>
 
@@ -459,10 +434,7 @@ export default function Contact() {
                     whileHover={{ scale: 1.04 }}
                     whileTap={{ scale: 0.97 }}
                     className="flex items-center gap-2 px-6 py-3 rounded-full text-[12px] font-mono border transition-all duration-200"
-                    style={{
-                      borderColor: 'rgba(161,161,170,0.3)',
-                      color: 'rgba(161,161,170,0.7)',
-                    }}
+                    style={{ borderColor: 'rgba(161,161,170,0.3)', color: 'rgba(161,161,170,0.7)' }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.borderColor = '#00E5FF'
                       e.currentTarget.style.color = '#00E5FF'
@@ -486,22 +458,18 @@ export default function Contact() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="rounded-[28px] border border-zinc-200 dark:border-zinc-800 bg-white/85 dark:bg-zinc-950/70 px-7 py-8 flex flex-col gap-6"
+                  className="rounded-[28px] border border-zinc-200 dark:border-zinc-800 bg-white/85 dark:bg-zinc-950/70 px-7 py-8 flex flex-col gap-6 h-full"
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-[12px] font-mono text-zinc-400 uppercase tracking-[0.2em] mb-1">
-                        {t?.contact?.form_new ?? (lang === 'fi' ? 'Uusi viesti' : 'New message')}
-                      </p>
+                      <p className="text-[12px] font-mono text-zinc-400 uppercase tracking-[0.2em] mb-1">{t?.contact?.form_new ?? (lang === 'fi' ? 'Uusi viesti' : 'New message')}</p>
                       <h3 className="text-lg font-bold text-zinc-900 dark:text-white" style={{ fontFamily: 'var(--font-syne)' }}>
                         {t?.contact?.form_title ?? (lang === 'fi' ? 'Lähetä viesti' : 'Send a message')}
                       </h3>
                     </div>
 
                     <div className="flex flex-col items-end gap-1">
-                      <p className="text-[12px] font-mono text-zinc-400 uppercase tracking-[0.15em]">
-                        {t?.contact?.priority ?? (lang === 'fi' ? 'Prioriteetti' : 'Priority')}
-                      </p>
+                      <p className="text-[12px] font-mono text-zinc-400 uppercase tracking-[0.15em]">{t?.contact?.priority ?? (lang === 'fi' ? 'Prioriteetti' : 'Priority')}</p>
                       <div className="flex gap-1">
                         {URGENCY_OPTIONS.map((u) => {
                           const isActive = form.urgency === u
@@ -530,8 +498,7 @@ export default function Contact() {
                   {/* email */}
                   <div className="flex flex-col gap-1.5">
                     <label className="text-[12px] font-mono text-zinc-500 uppercase tracking-[0.15em]">
-                      {t?.contact?.field_email ?? (lang === 'fi' ? 'Sähköposti' : 'Email')}{' '}
-                      <span className="text-[#00E5FF]">*</span>
+                      {t?.contact?.field_email ?? (lang === 'fi' ? 'Sähköposti' : 'Email')} <span className="text-[#00E5FF]">*</span>
                     </label>
                     <input
                       type="email"
@@ -545,9 +512,7 @@ export default function Contact() {
 
                   {/* subject */}
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[12px] font-mono text-zinc-500 uppercase tracking-[0.15em]">
-                      {t?.contact?.field_subject ?? (lang === 'fi' ? 'Aihe' : 'Subject')}
-                    </label>
+                    <label className="text-[12px] font-mono text-zinc-500 uppercase tracking-[0.15em]">{t?.contact?.field_subject ?? (lang === 'fi' ? 'Aihe' : 'Subject')}</label>
                     <input
                       type="text"
                       placeholder={form.category ? catLabel(form.category as Category) : subjectPh}
@@ -561,21 +526,13 @@ export default function Contact() {
                   <div className="flex flex-col gap-1.5">
                     <div className="flex items-center justify-between">
                       <label className="text-[12px] font-mono text-zinc-500 uppercase tracking-[0.15em]">
-                        {t?.contact?.field_message ?? (lang === 'fi' ? 'Viesti' : 'Message')}{' '}
-                        <span className="text-[#00E5FF]">*</span>
+                        {t?.contact?.field_message ?? (lang === 'fi' ? 'Viesti' : 'Message')} <span className="text-[#00E5FF]">*</span>
                       </label>
 
                       <AnimatePresence>
                         {isTyping && (
-                          <motion.div
-                            initial={{ opacity: 0, x: 6 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: 6 }}
-                            className="flex items-center gap-1.5"
-                          >
-                            <span className="text-[12px] font-mono text-[#00E5FF] tracking-wide">
-                              {t?.contact?.building ?? (lang === 'fi' ? 'Kirjoitetaan' : 'Typing')}
-                            </span>
+                          <motion.div initial={{ opacity: 0, x: 6 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 6 }} className="flex items-center gap-1.5">
+                            <span className="text-[12px] font-mono text-[#00E5FF] tracking-wide">{t?.contact?.building ?? (lang === 'fi' ? 'Kirjoitetaan' : 'Typing')}</span>
                             <span className="flex gap-0.5">
                               {[0, 1, 2].map((i) => (
                                 <motion.span
@@ -602,8 +559,7 @@ export default function Contact() {
                     />
                     <div className="flex justify-between text-[11px] font-mono text-zinc-400">
                       <span>
-                        {t?.contact?.chars_up_to ?? (lang === 'fi' ? 'Enintään' : 'Up to')}{' '}
-                        {MESSAGE_MAX}{' '}
+                        {t?.contact?.chars_up_to ?? (lang === 'fi' ? 'Enintään' : 'Up to')} {MESSAGE_MAX}{' '}
                         {t?.contact?.chars_label ?? (lang === 'fi' ? 'merkkiä' : 'characters')}
                       </span>
                       <span className={form.message.length >= MESSAGE_MAX ? 'text-red-400' : ''}>
@@ -614,11 +570,7 @@ export default function Contact() {
 
                   {/* attach portfolio */}
                   <div className="flex flex-col gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setForm((f) => ({ ...f, attachPortfolio: !f.attachPortfolio }))}
-                      className="flex items-center gap-3 group"
-                    >
+                    <button type="button" onClick={() => setForm((f) => ({ ...f, attachPortfolio: !f.attachPortfolio }))} className="flex items-center gap-3 group">
                       <div
                         className="relative h-5 w-9 rounded-full border transition-all duration-300"
                         style={{
@@ -641,13 +593,7 @@ export default function Contact() {
 
                     <AnimatePresence>
                       {form.attachPortfolio && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          exit={{ opacity: 0, height: 0 }}
-                          transition={{ duration: 0.2 }}
-                          className="overflow-hidden"
-                        >
+                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden">
                           <input
                             type="url"
                             placeholder={attachPh}
@@ -663,12 +609,7 @@ export default function Contact() {
                   {/* error banner */}
                   <AnimatePresence>
                     {submitError && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0 }}
-                        className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-[12px] font-mono text-red-400"
-                      >
+                      <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-[12px] font-mono text-red-400">
                         {submitError}
                       </motion.div>
                     )}
@@ -685,8 +626,9 @@ export default function Contact() {
                       mt-2 w-full rounded-full py-4
                       font-mono text-[13px] font-semibold tracking-[0.25em]
                       bg-[#00E5FF] text-black
-                      shadow-md hover:shadow-[0_0_28px_rgba(0,229,255,0.4)]
-                      transition-all duration-200
+                      shadow-[0_10px_25px_rgba(0,229,255,0.25)]
+                      hover:shadow-[0_0_35px_rgba(0,229,255,0.6)]
+                      transition-all duration-300
                       disabled:opacity-40 disabled:cursor-not-allowed
                       overflow-hidden relative
                     "
@@ -705,20 +647,13 @@ export default function Contact() {
 
                     {isSubmitting ? (
                       <span className="flex items-center justify-center gap-2">
-                        <motion.span
-                          animate={{ rotate: 360 }}
-                          transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
-                          className="inline-block h-3.5 w-3.5 border-2 border-black/30 border-t-black rounded-full"
-                        />
+                        <motion.span animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }} className="inline-block h-3.5 w-3.5 border-2 border-black/30 border-t-black rounded-full" />
                         {t?.contact?.submit_loading ?? (lang === 'fi' ? 'LÄHETETÄÄN' : 'SENDING')}
                       </span>
                     ) : (
                       <span className="flex items-center justify-center gap-2">
                         {hovering ? submitHover : submitIdle}
-                        <motion.span
-                          animate={hovering ? { x: [0, 3, 0] } : { x: 0 }}
-                          transition={{ duration: 0.6, repeat: Infinity }}
-                        >
+                        <motion.span animate={hovering ? { x: [0, 3, 0] } : { x: 0 }} transition={{ duration: 0.6, repeat: Infinity }}>
                           ↗
                         </motion.span>
                       </span>
@@ -727,9 +662,7 @@ export default function Contact() {
 
                   <p className="text-[13px] font-mono text-zinc-400 text-center mt-3">
                     {t?.contact?.footer_note ??
-                      (lang === 'fi'
-                        ? 'En tallenna tietojasi — viesti lähetetään vain sähköpostina.'
-                        : 'I don’t store your data — the message is sent via email only.')}
+                      (lang === 'fi' ? 'En tallenna tietojasi — viesti lähetetään vain sähköpostina.' : 'I don’t store your data — the message is sent via email only.')}
                   </p>
                 </motion.form>
               )}
@@ -770,9 +703,7 @@ export default function Contact() {
               Email
             </a>
           </div>
-          <p className="text-[13px] font-mono text-zinc-500 dark:text-zinc-400 tracking-[0.08em]">
-            {t?.contact?.built_with ?? 'Built with Next.js & Tailwind'}
-          </p>
+          <p className="text-[13px] font-mono text-zinc-500 dark:text-zinc-400 tracking-[0.08em]">{t?.contact?.built_with ?? 'Built with Next.js & Tailwind'}</p>
         </div>
       </div>
     </section>
