@@ -21,20 +21,19 @@ export default function Hero() {
     <section
       id="hero"
       className="
-        relative flex items-center
-        min-h-[calc(100svh-4rem)]
+        min-h-screen flex items-center relative
         overflow-hidden
         bg-slate-50 dark:bg-[#0a0a0a]
-        pt-10 pb-16
       "
     >
-      {/* soft background glow */}
+      {/* Background glow */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute -top-24 left-1/4 w-[520px] h-[520px] bg-cyan-500/10 dark:bg-cyan-500/7 rounded-full blur-3xl" />
         <div className="absolute -bottom-28 right-1/5 w-[460px] h-[460px] bg-sky-400/10 dark:bg-sky-400/6 rounded-full blur-3xl" />
       </div>
 
-      <div className="w-full relative z-10">
+      {/* FIXED MOBILE SPACING */}
+      <div className="w-full relative z-10 pt-28 md:pt-16">
         <div
           className="
             max-w-6xl mx-auto
@@ -44,8 +43,8 @@ export default function Hero() {
             px-4 sm:px-6
           "
         >
-          {/* LEFT */}
-          <div className="flex flex-col items-start">
+          {/* LEFT CONTENT */}
+          <div className="flex flex-col items-start py-10">
             <div className="flex items-center gap-3 mb-8">
               <div className="flex items-center gap-1.5">
                 <div className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse" />
@@ -67,16 +66,21 @@ export default function Hero() {
               </span>
             </div>
 
+            {/* NAME */}
             <h1
               className="text-5xl sm:text-6xl md:text-7xl font-bold leading-none mb-4"
               style={{ fontFamily: 'var(--font-syne)' }}
             >
-              <span className="text-slate-900 dark:text-white block">{t.hero.firstName}</span>
+              <span className="text-slate-900 dark:text-white block">
+                {t.hero.firstName}
+              </span>
+
               <span className="bg-gradient-to-r from-cyan-500 via-cyan-400 to-sky-400 bg-clip-text text-transparent block">
                 {t.hero.lastName}
               </span>
             </h1>
 
+            {/* TAGLINE */}
             <p
               className="text-sm sm:text-base font-medium text-cyan-700 dark:text-cyan-400 mb-6 tracking-widest uppercase"
               style={{ fontFamily: 'var(--font-mono)' }}
@@ -84,6 +88,7 @@ export default function Hero() {
               {t.hero.tagline}
             </p>
 
+            {/* BIO */}
             <p
               className="text-sm leading-7 mb-10 max-w-lg text-slate-600 dark:text-zinc-400"
               style={{ fontFamily: 'var(--font-mono)' }}
@@ -94,10 +99,13 @@ export default function Hero() {
                   <br />
                 </span>
               ))}
-              <span className="text-cyan-700 dark:text-cyan-400 font-medium">{t.hero.bio_highlight}</span>
+
+              <span className="text-cyan-700 dark:text-cyan-400 font-medium">
+                {t.hero.bio_highlight}
+              </span>
             </p>
 
-            {/* Buttons */}
+            {/* BUTTONS */}
             <div className="flex flex-wrap gap-3 mb-10">
               <a href="#projects">
                 <Button
@@ -110,7 +118,10 @@ export default function Hero() {
                   "
                   style={{ fontFamily: 'var(--font-mono)' }}
                 >
-                  <span className="text-[13px] font-semibold tracking-[0.18em] uppercase">{t.hero.cta_projects}</span>
+                  <span className="text-[13px] font-semibold tracking-[0.18em] uppercase">
+                    {t.hero.cta_projects}
+                  </span>
+
                   <ArrowRight className="w-4 h-4" />
                 </Button>
               </a>
@@ -130,22 +141,33 @@ export default function Hero() {
                   "
                   style={{ fontFamily: 'var(--font-mono)' }}
                 >
-                  <span className="text-[13px] font-semibold tracking-[0.18em] uppercase">{t.hero.cta_cv}</span>
+                  <span className="text-[13px] font-semibold tracking-[0.18em] uppercase">
+                    {t.hero.cta_cv}
+                  </span>
+
                   <Download className="w-4 h-4" />
                 </Button>
               </a>
             </div>
 
-            {/* Social icons */}
+            {/* SOCIAL ICONS */}
             <div className="flex items-center gap-3">
               {[
-                { href: 'https://github.com/Sankalpa7', icon: <Github className="w-5 h-5" />, label: 'GitHub' },
+                {
+                  href: 'https://github.com/Sankalpa7',
+                  icon: <Github className="w-5 h-5" />,
+                  label: 'GitHub',
+                },
                 {
                   href: 'https://www.linkedin.com/in/sankalpaneupane7/',
                   icon: <Linkedin className="w-5 h-5" />,
                   label: 'LinkedIn',
                 },
-                { href: 'mailto:sankalpaneupane7@gmail.com', icon: <Mail className="w-5 h-5" />, label: 'Email' },
+                {
+                  href: 'mailto:sankalpaneupane7@gmail.com',
+                  icon: <Mail className="w-5 h-5" />,
+                  label: 'Email',
+                },
               ].map((item) => (
                 <a
                   key={item.label}
@@ -170,8 +192,8 @@ export default function Hero() {
             </div>
           </div>
 
-          {/* RIGHT (Sphere Card) */}
-          <div className="flex items-center justify-center">
+          {/* RIGHT SIDE SPHERE */}
+          <div className="flex items-center justify-center pb-12 lg:pb-0">
             <div
               className="
                 relative
@@ -188,7 +210,6 @@ export default function Hero() {
                 dark:shadow-none
               "
             >
-              {/* subtle radial glow only for light */}
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(14,165,233,0.10)_0%,transparent_65%)] dark:hidden" />
 
               <div className="absolute inset-0 flex items-center justify-center">
@@ -201,9 +222,12 @@ export default function Hero() {
         </div>
       </div>
 
-      {/* Scroll indicator */}
+      {/* SCROLL INDICATOR */}
       <div className="absolute bottom-7 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
-        <span className="text-slate-400 dark:text-zinc-600 text-xs font-mono tracking-widest">{t.hero.scroll}</span>
+        <span className="text-slate-400 dark:text-zinc-600 text-xs font-mono tracking-widest">
+          {t.hero.scroll}
+        </span>
+
         <div className="w-px h-10 bg-gradient-to-b from-slate-400 dark:from-zinc-600 to-transparent animate-pulse" />
       </div>
     </section>
