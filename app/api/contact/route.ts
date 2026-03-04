@@ -3,22 +3,59 @@ import { NextResponse } from 'next/server'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
+function escapeHtml(input: string) {
+  return input
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;')
+}
+
+function safeStr(v: unknown, max = 2000) {
+  if (typeof v !== 'string') return ''
+  return v.slice(0, max)
+}
+
 export async function POST(req: Request) {
   try {
-    const { email, subject, message, urgency, category, portfolioUrl, ticketId } =
-      await req.json()
+    if (!process.env.RESEND_API_KEY) {
+      return NextResponse.json({ error: 'Missing RESEND_API_KEY' }, { status: 500 })
+    }
 
-    if (!email || !message) {
+    const body = await req.json()
+
+    const emailRaw = safeStr(body?.email, 320)
+    const subjectRaw = safeStr(body?.subject, 140)
+    const messageRaw = safeStr(body?.message, 9000)
+    const urgencyRaw = safeStr(body?.urgency, 40)
+    const categoryRaw = safeStr(body?.category, 40)
+    const portfolioUrlRaw = safeStr(body?.portfolioUrl, 800)
+    const ticketIdRaw = safeStr(body?.ticketId, 40)
+
+    if (!emailRaw.trim() || !messageRaw.trim()) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
+
+    // Escape anything that can appear in HTML (subject, message, etc.)
+    const email = escapeHtml(emailRaw.trim())
+    const subject = escapeHtml(subjectRaw.trim())
+    const message = escapeHtml(messageRaw.trim())
+    const urgency = escapeHtml(urgencyRaw.trim() || 'exploring')
+    const category = escapeHtml(categoryRaw.trim() || '—')
+    const ticketId = escapeHtml(ticketIdRaw.trim() || 'SNK-0000-0000')
+
+    // Only include a link if it looks like a real http(s) URL
+    const portfolioUrl =
+      /^https?:\/\/\S+$/i.test(portfolioUrlRaw.trim()) ? escapeHtml(portfolioUrlRaw.trim()) : ''
 
     await resend.emails.send({
       from: 'Portfolio Contact <onboarding@resend.dev>',
       to: 'sankalpaneupane7@gmail.com',
-      replyTo: email,
+      replyTo: emailRaw.trim(), // keep raw email for Reply-To
       subject: `[${ticketId}] ${subject || category || 'New message'} — ${urgency}`,
       html: `
-        <div style="font-family:monospace;max-width:600px;margin:0 auto;padding:32px;background:#09090b;color:#e4e4e7;border-radius:16px;">
+        <div style="font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;max-width:600px;margin:0 auto;padding:32px;background:#09090b;color:#e4e4e7;border-radius:16px;">
           <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
             <div style="width:8px;height:8px;border-radius:50%;background:#06b6d4;"></div>
             <span style="color:#06b6d4;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;">New ticket · Portfolio</span>
@@ -36,7 +73,7 @@ export async function POST(req: Request) {
             </tr>
             <tr>
               <td style="padding:10px 0;color:#71717a;border-bottom:1px solid #27272a;">Category</td>
-              <td style="padding:10px 0;color:#06b6d4;border-bottom:1px solid #27272a;">${category || '—'}</td>
+              <td style="padding:10px 0;color:#06b6d4;border-bottom:1px solid #27272a;">${category}</td>
             </tr>
             <tr>
               <td style="padding:10px 0;color:#71717a;border-bottom:1px solid #27272a;">Priority</td>
@@ -45,9 +82,11 @@ export async function POST(req: Request) {
             ${
               portfolioUrl
                 ? `<tr>
-              <td style="padding:10px 0;color:#71717a;">Portfolio / CV</td>
-              <td style="padding:10px 0;"><a href="${portfolioUrl}" style="color:#06b6d4;">${portfolioUrl}</a></td>
-            </tr>`
+                    <td style="padding:10px 0;color:#71717a;">Portfolio / CV</td>
+                    <td style="padding:10px 0;">
+                      <a href="${portfolioUrl}" style="color:#06b6d4;">${portfolioUrl}</a>
+                    </td>
+                  </tr>`
                 : ''
             }
           </table>
