@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import Image from 'next/image'
 import { useLang } from '@/lib/i18n/LangContext'
 
 type Locale = 'en' | 'fi'
@@ -34,7 +35,6 @@ type CertSlide = {
   modalSrc: string
 }
 
-/** ✅ Single source of truth: bilingual data (no module-level “localized later” hacks) */
 const CERTS: CertBase[] = [
   {
     id: 'gda',
@@ -304,7 +304,6 @@ const CERTS: CertBase[] = [
   },
 ]
 
-// Quotes stay English (per your request)
 const quotes = [
   { text: 'Every certificate is a door you unlocked — not by luck, but by showing up.', author: 'On persistence' },
   { text: 'The expert in anything was once a beginner who simply refused to quit.', author: 'Helen Hayes' },
@@ -359,11 +358,13 @@ function CardPreview({
       className="relative w-full h-[130px] md:h-[140px] rounded-2xl overflow-hidden border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500"
     >
       {isImage ? (
-        <img
+        <Image
           src={cert.previewSrc}
           alt={cert.title}
+          fill
+          sizes="(max-width: 768px) 260px, 280px"
           className={[
-            'absolute inset-0 w-full h-full object-cover blur-[1px] brightness-[0.78] dark:brightness-[0.85] transition-transform duration-500',
+            'object-cover blur-[1px] brightness-[0.78] dark:brightness-[0.85] transition-transform duration-500',
             isCardHovered ? 'scale-[1.06]' : 'scale-[1.03]',
           ].join(' ')}
         />
@@ -415,27 +416,35 @@ function CardPreview({
 function ModalViewer({ cert }: { cert: CertSlide }) {
   if (cert.previewType === 'image') {
     return (
-      <div className="relative w-full bg-zinc-900" style={{ maxHeight: '62vh' }}>
-        <img src={cert.modalSrc} alt={cert.title} className="w-full object-contain" style={{ maxHeight: '62vh' }} />
+      <div className="relative w-full bg-zinc-900" style={{ maxHeight: '62vh', minHeight: 320 }}>
+        <Image
+          src={cert.modalSrc}
+          alt={cert.title}
+          fill
+          sizes="(max-width: 768px) 100vw, 768px"
+          className="object-contain"
+        />
       </div>
     )
   }
 
   return (
     <div className="relative w-full bg-zinc-900" style={{ height: '62vh' }}>
-      <iframe src={cert.modalSrc + '#toolbar=1&navpanes=0&scrollbar=1'} className="w-full h-full border-0" title={cert.title} />
+      <iframe
+        src={cert.modalSrc + '#toolbar=1&navpanes=0&scrollbar=1'}
+        className="w-full h-full border-0"
+        title={cert.title}
+      />
     </div>
   )
 }
 
 export default function Certifications() {
-  // ✅ IMPORTANT: use locale (not lang)
   const { locale } = useLang()
   const isFI = locale === 'fi'
 
-  // ✅ UI strings depend ONLY on locale
-  const ui = useMemo(() => {
-    return {
+  const ui = useMemo(
+    () => ({
       section: '// 05',
       title: isFI ? 'Sertifikaatit' : 'Certifications',
       subtitle: isFI
@@ -453,10 +462,10 @@ export default function Certifications() {
         : 'PDF rendered inline — use the built-in toolbar to zoom, download or print.',
       modalIssuedBy: isFI ? 'Myöntäjä:' : 'Issued by',
       modalOpenDownload: isFI ? 'Avaa / Lataa' : 'Open / Download',
-    }
-  }, [isFI])
+    }),
+    [isFI],
+  )
 
-  // ✅ Slides are rebuilt whenever locale changes (no reload needed)
   const slides: CertSlide[] = useMemo(() => {
     const l: Locale = isFI ? 'fi' : 'en'
     return CERTS.map((c) => ({
@@ -481,24 +490,49 @@ export default function Certifications() {
   const [ctaHint, setCtaHint] = useState(true)
   const [isCardHovered, setIsCardHovered] = useState(false)
 
-  // ✅ When language changes, keep index safe
+  // Safe index with wrap + guards
+  const safeActiveIndex =
+    slides.length === 0 ? 0 : ((activeIndex % slides.length) + slides.length) % slides.length
+  const active = slides.length === 0 ? null : slides[safeActiveIndex]
+
+  // CTA hint trigger (NO setState in effects)
+  const ctaTimerRef = useRef<number | null>(null)
+  const triggerCtaHint = useCallback(() => {
+    setCtaHint(true)
+    setIsCardHovered(false)
+    if (ctaTimerRef.current) window.clearTimeout(ctaTimerRef.current)
+    ctaTimerRef.current = window.setTimeout(() => setCtaHint(false), 1200)
+  }, [])
+
   useEffect(() => {
-    if (activeIndex > slides.length - 1) setActiveIndex(0)
-  }, [slides.length, activeIndex])
+    return () => {
+      if (ctaTimerRef.current) window.clearTimeout(ctaTimerRef.current)
+    }
+  }, [])
 
-  const active = slides[activeIndex]
+  const goNext = useCallback(() => {
+    if (slides.length === 0) return
+    setActiveIndex((p) => (p + 1) % slides.length)
+    triggerCtaHint()
+  }, [slides.length, triggerCtaHint])
 
-  const goNext = useCallback(() => setActiveIndex((p) => (p + 1) % slides.length), [slides.length])
-  const goPrev = useCallback(() => setActiveIndex((p) => (p === 0 ? slides.length - 1 : p - 1)), [slides.length])
+  const goPrev = useCallback(() => {
+    if (slides.length === 0) return
+    setActiveIndex((p) => (p === 0 ? slides.length - 1 : p - 1))
+    triggerCtaHint()
+  }, [slides.length, triggerCtaHint])
 
   useEffect(() => {
-    const t = setInterval(() => setQuoteIndex((i) => (i + 1) % quotes.length), 6000)
-    return () => clearInterval(t)
+    const t = window.setInterval(() => setQuoteIndex((i) => (i + 1) % quotes.length), 6000)
+    return () => window.clearInterval(t)
   }, [])
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setModalSlide(null)
+      if (e.key === 'Escape') {
+        setModalSlide(null)
+        return
+      }
       if (modalSlide) return
       if (e.key === 'ArrowRight') goNext()
       if (e.key === 'ArrowLeft') goPrev()
@@ -507,20 +541,26 @@ export default function Certifications() {
     return () => window.removeEventListener('keydown', handler)
   }, [modalSlide, goNext, goPrev])
 
-  useEffect(() => {
-    setCtaHint(true)
-    setIsCardHovered(false)
-    const t = setTimeout(() => setCtaHint(false), 1200)
-    return () => clearTimeout(t)
-  }, [activeIndex, locale])
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    setTouchStartX(e.touches[0].clientX)
+  }
 
-  const handleTouchStart = (e: any) => setTouchStartX(e.touches[0].clientX)
-  const handleTouchEnd = (e: any) => {
+  const handleTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
     if (touchStartX === null) return
     const dx = e.changedTouches[0].clientX - touchStartX
     if (dx > 40) goPrev()
     else if (dx < -40) goNext()
     setTouchStartX(null)
+  }
+
+  if (!active) {
+    return (
+      <section id="certifications" className="py-24 bg-[#f5f5f5] dark:bg-[#050505]">
+        <div className="max-w-6xl mx-auto px-6 md:px-10 lg:px-6 xl:px-0">
+          <p className="text-sm text-zinc-600 dark:text-zinc-400 font-mono">No certificates to display.</p>
+        </div>
+      </section>
+    )
   }
 
   return (
@@ -534,21 +574,31 @@ export default function Certifications() {
         <div className="flex items-center gap-4 mb-3">
           <span className="text-cyan-500 text-xs font-mono tracking-[0.25em]">{ui.section}</span>
           <div className="w-10 h-px bg-cyan-500" />
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white" style={{ fontFamily: 'var(--font-syne)' }}>
+          <h2
+            className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white"
+            style={{ fontFamily: 'var(--font-syne)' }}
+          >
             {ui.title}
           </h2>
           <div className="flex-1 h-px bg-zinc-300 dark:bg-zinc-800" />
         </div>
 
-        <p className="text-xs md:text-sm font-mono text-zinc-700 dark:text-zinc-400 max-w-xl mb-12">{ui.subtitle}</p>
+        <p className="text-xs md:text-sm font-mono text-zinc-700 dark:text-zinc-400 max-w-xl mb-12">
+          {ui.subtitle}
+        </p>
 
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,0.95fr)] gap-12 xl:gap-20 items-start">
           {/* LEFT */}
           <div className="flex flex-col gap-5 lg:gap-6">
-            {/* Quotes stay EN */}
             <div className="relative rounded-[28px] border border-zinc-200 dark:border-zinc-800 bg-white/85 dark:bg-zinc-950/70 px-7 py-8 overflow-hidden">
-              <div className="absolute left-0 top-8 bottom-8 w-[3px] rounded-r-full transition-all duration-500" style={{ background: `linear-gradient(to bottom, ${active.accent}, #8b5cf6)` }} />
-              <span className="absolute top-1 left-5 text-[100px] leading-none select-none font-serif pointer-events-none" style={{ color: active.accent + '10' }}>
+              <div
+                className="absolute left-0 top-8 bottom-8 w-[3px] rounded-r-full transition-all duration-500"
+                style={{ background: `linear-gradient(to bottom, ${active.accent}, #8b5cf6)` }}
+              />
+              <span
+                className="absolute top-1 left-5 text-[100px] leading-none select-none font-serif pointer-events-none"
+                style={{ color: active.accent + '10' }}
+              >
                 &ldquo;
               </span>
 
@@ -561,7 +611,10 @@ export default function Certifications() {
                   transition={{ duration: 0.4 }}
                   className="relative min-h-[96px] flex flex-col justify-center"
                 >
-                  <p className="text-base md:text-[17px] leading-relaxed text-zinc-900 dark:text-zinc-50 italic mb-3" style={{ fontFamily: 'Georgia, serif' }}>
+                  <p
+                    className="text-base md:text-[17px] leading-relaxed text-zinc-900 dark:text-zinc-50 italic mb-3"
+                    style={{ fontFamily: 'Georgia, serif' }}
+                  >
                     {quotes[quoteIndex].text}
                   </p>
                   <p className="text-[11px] font-mono tracking-[0.12em]" style={{ color: active.accent }}>
@@ -577,7 +630,10 @@ export default function Certifications() {
                     type="button"
                     onClick={() => setQuoteIndex(i)}
                     className="h-[5px] rounded-full transition-all duration-300"
-                    style={{ width: i === quoteIndex ? 20 : 6, backgroundColor: i === quoteIndex ? active.accent : 'rgba(161,161,170,0.35)' }}
+                    style={{
+                      width: i === quoteIndex ? 20 : 6,
+                      backgroundColor: i === quoteIndex ? active.accent : 'rgba(161,161,170,0.35)',
+                    }}
                   />
                 ))}
               </div>
@@ -590,11 +646,19 @@ export default function Certifications() {
                 { val: '2019', label: ui.statLearningSince },
                 { val: '5+', label: ui.statPlatforms },
               ].map((s) => (
-                <div key={s.label} className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white/90 dark:bg-zinc-950/70 px-5 py-4 text-left">
-                  <p className="text-[22px] md:text-[24px] font-bold text-zinc-900 dark:text-white tracking-tight mb-1" style={{ fontFamily: 'var(--font-syne)' }}>
+                <div
+                  key={s.label}
+                  className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white/90 dark:bg-zinc-950/70 px-5 py-4 text-left"
+                >
+                  <p
+                    className="text-[22px] md:text-[24px] font-bold text-zinc-900 dark:text-white tracking-tight mb-1"
+                    style={{ fontFamily: 'var(--font-syne)' }}
+                  >
                     {s.val}
                   </p>
-                  <p className="text-[10px] md:text-[11px] font-mono uppercase tracking-[0.18em] text-zinc-600 dark:text-zinc-400">{s.label}</p>
+                  <p className="text-[10px] md:text-[11px] font-mono uppercase tracking-[0.18em] text-zinc-600 dark:text-zinc-400">
+                    {s.label}
+                  </p>
                 </div>
               ))}
             </div>
@@ -603,7 +667,7 @@ export default function Certifications() {
             <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white/90 dark:bg-zinc-950/70 px-5 py-4">
               <div className="flex justify-between items-center mb-2.5">
                 <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-[0.12em]">
-                  {ui.card} {String(activeIndex + 1).padStart(2, '0')} / {String(slides.length).padStart(2, '0')}
+                  {ui.card} {String(safeActiveIndex + 1).padStart(2, '0')} / {String(slides.length).padStart(2, '0')}
                 </span>
                 <span className="text-[11px] font-mono" style={{ color: active.accent }}>
                   {active.year}
@@ -614,7 +678,7 @@ export default function Certifications() {
                 <motion.div
                   className="h-full rounded-full"
                   style={{ background: `linear-gradient(90deg, ${active.accent}, #8b5cf6)` }}
-                  animate={{ width: `${((activeIndex + 1) / slides.length) * 100}%` }}
+                  animate={{ width: `${((safeActiveIndex + 1) / slides.length) * 100}%` }}
                   transition={{ duration: 0.4 }}
                 />
               </div>
@@ -656,20 +720,28 @@ export default function Certifications() {
                     </div>
                   </div>
 
-                  <h3 className="text-[17px] font-semibold text-zinc-900 dark:text-zinc-50 leading-snug -mt-1" style={{ fontFamily: 'var(--font-syne)' }}>
+                  <h3
+                    className="text-[17px] font-semibold text-zinc-900 dark:text-zinc-50 leading-snug -mt-1"
+                    style={{ fontFamily: 'var(--font-syne)' }}
+                  >
                     {active.title}
                   </h3>
 
                   <CardPreview
                     cert={active}
-                    onClick={() => setModalSlide(active)}
+                    onClick={() => {
+                      setModalSlide(active)
+                      triggerCtaHint()
+                    }}
                     isCardHovered={isCardHovered}
                     showHint={ctaHint}
                     ctaLabel={ui.viewFull}
                     previewLabel={ui.preview}
                   />
 
-                  <p className="text-[11px] font-mono text-zinc-600 dark:text-zinc-400 leading-relaxed line-clamp-3">{active.description}</p>
+                  <p className="text-[11px] font-mono text-zinc-600 dark:text-zinc-400 leading-relaxed line-clamp-3">
+                    {active.description}
+                  </p>
 
                   <div className="flex flex-wrap gap-1.5">
                     {active.skills.map((s) => (
@@ -679,15 +751,17 @@ export default function Certifications() {
 
                   <div className="mt-auto flex items-center justify-between pt-2 border-t border-zinc-100 dark:border-zinc-800/80">
                     <span className="text-[10px] font-mono text-zinc-400 dark:text-zinc-500">
-                      {String(activeIndex + 1).padStart(2, '0')} / {String(slides.length).padStart(2, '0')}
+                      {String(safeActiveIndex + 1).padStart(2, '0')} / {String(slides.length).padStart(2, '0')}
                     </span>
-                    <span className="text-[9px] font-mono text-zinc-400 dark:text-zinc-500 hidden md:block">{ui.keysHint}</span>
+                    <span className="text-[9px] font-mono text-zinc-400 dark:text-zinc-500 hidden md:block">
+                      {ui.keysHint}
+                    </span>
                   </div>
                 </motion.div>
               </AnimatePresence>
             </div>
 
-            {/* arrows pinned */}
+            {/* arrows */}
             <div className="mt-auto pt-4 flex items-center gap-3">
               <button
                 type="button"
@@ -702,12 +776,15 @@ export default function Certifications() {
                   <button
                     key={i}
                     type="button"
-                    onClick={() => setActiveIndex(i)}
+                    onClick={() => {
+                      setActiveIndex(i)
+                      triggerCtaHint()
+                    }}
                     className="rounded-full transition-all duration-300"
                     style={{
-                      width: i === activeIndex ? 18 : 5,
+                      width: i === safeActiveIndex ? 18 : 5,
                       height: 5,
-                      backgroundColor: i === activeIndex ? active.accent : 'rgba(161,161,170,0.3)',
+                      backgroundColor: i === safeActiveIndex ? active.accent : 'rgba(161,161,170,0.3)',
                     }}
                   />
                 ))}
@@ -747,7 +824,9 @@ export default function Certifications() {
             >
               <div className="flex items-start justify-between gap-4 px-6 pt-5 pb-4 border-b border-zinc-800/60">
                 <div>
-                  <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-[0.18em] mb-1">{modalSlide.provider}</p>
+                  <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-[0.18em] mb-1">
+                    {modalSlide.provider}
+                  </p>
                   <h3 className="text-lg font-semibold text-white leading-snug" style={{ fontFamily: 'var(--font-syne)' }}>
                     {modalSlide.title}
                   </h3>

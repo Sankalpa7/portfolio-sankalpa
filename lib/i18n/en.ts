@@ -101,9 +101,9 @@ const en = {
     subtitle:
       'Technologies I work with — the icons orbit like a wheel and the highlighted tile shows the active skill.',
     categoryDescriptions: {
-      web: "Building fast, modern interfaces — from React components to full Next.js applications.",
-      data: "From raw datasets to trained models, working with supervised learning and real-world data.",
-      tools: "Comfortable in enterprise IT environments — from Azure AD and Linux to everyday tooling.",
+      web: 'Building fast, modern interfaces — from React components to full Next.js applications.',
+      data: 'From raw datasets to trained models, working with supervised learning and real-world data.',
+      tools: 'Comfortable in enterprise IT environments — from Azure AD and Linux to everyday tooling.',
     },
     cats: {
       web: 'Web & Frontend',
@@ -146,8 +146,7 @@ const en = {
   contact: {
     section: '// 07',
     title: 'Contact',
-    subtitle:
-      'Open a support ticket — I promise my SLA is better than most helpdesks.',
+    subtitle: 'Open a support ticket — I promise my SLA is better than most helpdesks.',
     status: 'Status: Online · Finland (UTC+2)',
     heading_line1: 'Open a ticket with',
     heading_name: 'Sankalpa',
@@ -165,11 +164,7 @@ const en = {
     sla_based_val: 'Helsinki, Finland',
     ticket_id: 'Ticket ID',
     activity_title: 'Recent activity',
-    activity: [
-      "Master's thesis in progress",
-      'Actively seeking cloud / IT roles',
-      'Portfolio v2 shipped',
-    ],
+    activity: ["Master's thesis in progress", 'Actively seeking cloud / IT roles', 'Portfolio v2 shipped'],
     reach: 'Or reach me at',
     form_new: 'New request',
     form_title: 'Ticket details',
@@ -184,8 +179,7 @@ const en = {
     field_subject: 'What can I help you with?',
     field_subject_placeholder: 'e.g. Frontend role at Acme Corp',
     field_message: 'Describe your request',
-    field_message_placeholder:
-      'The more details, the better — I read every message.',
+    field_message_placeholder: 'The more details, the better — I read every message.',
     char_limit: 'Up to 900 characters',
     building: 'building ticket',
     attach_toggle: 'Attach a CV / portfolio link',
@@ -193,19 +187,17 @@ const en = {
     submit_idle: 'SEND MESSAGE',
     submit_hover: 'CREATE TICKET',
     submit_loading: 'CREATING TICKET…',
-    footer_note:
-      'Your message goes directly to me — no bots, no autoresponders.',
+    footer_note: 'Your message goes directly to me — no bots, no autoresponders.',
     success_title: 'Ticket created.',
     success_sub: "I'll get back to you soon. Keep an eye on your inbox.",
     success_ref: 'Ticket Ref:',
     success_quote: '"Thank you for reaching out. – Sankalpa"',
     send_another: 'Send another message',
-    error_msg:
-      'Something went wrong — please email me directly at sankalpaneupane7@gmail.com',
+    error_msg: 'Something went wrong — please email me directly at sankalpaneupane7@gmail.com',
     footer_rights: 'All rights reserved.',
     footer_built: 'Built with Next.js & Tailwind',
   },
-} as const
+}
 
 export default en
 export type Translations = typeof en

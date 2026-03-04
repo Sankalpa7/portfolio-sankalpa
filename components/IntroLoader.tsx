@@ -15,14 +15,7 @@ const FACES = [
     Icon: () => (
       <svg viewBox="0 0 80 80" width="46" height="46" aria-hidden>
         <circle cx="40" cy="40" r="40" fill="#000" />
-        <path
-          d="M22 56V24l36 32V24"
-          stroke="#fff"
-          strokeWidth="6"
-          fill="none"
-          strokeLinejoin="round"
-          strokeLinecap="round"
-        />
+        <path d="M22 56V24l36 32V24" stroke="#fff" strokeWidth="6" fill="none" strokeLinejoin="round" strokeLinecap="round" />
       </svg>
     ),
   },
@@ -32,26 +25,8 @@ const FACES = [
       <svg viewBox="0 0 80 80" width="46" height="46" aria-hidden>
         <circle cx="40" cy="40" r="7" fill="#61dafb" />
         <ellipse cx="40" cy="40" rx="34" ry="13" stroke="#61dafb" strokeWidth="3.5" fill="none" />
-        <ellipse
-          cx="40"
-          cy="40"
-          rx="34"
-          ry="13"
-          stroke="#61dafb"
-          strokeWidth="3.5"
-          fill="none"
-          transform="rotate(60 40 40)"
-        />
-        <ellipse
-          cx="40"
-          cy="40"
-          rx="34"
-          ry="13"
-          stroke="#61dafb"
-          strokeWidth="3.5"
-          fill="none"
-          transform="rotate(120 40 40)"
-        />
+        <ellipse cx="40" cy="40" rx="34" ry="13" stroke="#61dafb" strokeWidth="3.5" fill="none" transform="rotate(60 40 40)" />
+        <ellipse cx="40" cy="40" rx="34" ry="13" stroke="#61dafb" strokeWidth="3.5" fill="none" transform="rotate(120 40 40)" />
       </svg>
     ),
   },
@@ -101,20 +76,11 @@ const FACES = [
   },
 ] as const
 
-const PHASES = [
-  'scanning modules…',
-  'resolving imports…',
-  'compiling tsx…',
-  'bundling assets…',
-  'tree-shaking…',
-  'hydrating dom…',
-  'stack online ✓',
-] as const
-
+const PHASES = ['scanning modules…', 'resolving imports…', 'compiling tsx…', 'bundling assets…', 'tree-shaking…', 'hydrating dom…', 'stack online ✓'] as const
 const SLOGAN_WORDS = ['Welcome', 'to', "Sankalpa’s", 'Den'] as const
 
 /** Cube geometry */
-const S = 50 // translateZ(50px)
+const S = 50
 const FACE_SIZE = 100
 
 const ASSEMBLED = [
@@ -135,7 +101,38 @@ const FLY_FROM = [
   `translateX(-620px) translateY(620px) rotateX(-90deg) translateZ(${S}px)`,
 ] as const
 
-/** ---------------- Particle BG (simple, fast) ---------------- */
+/** ---------------- Color helpers ---------------- */
+function hexToRgb(hex: string) {
+  const h = hex.replace('#', '').trim()
+  const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h
+  if (full.length !== 6) return null
+  const r = parseInt(full.slice(0, 2), 16)
+  const g = parseInt(full.slice(2, 4), 16)
+  const b = parseInt(full.slice(4, 6), 16)
+  return Number.isFinite(r) && Number.isFinite(g) && Number.isFinite(b) ? { r, g, b } : null
+}
+
+function cssColorToRgb(color: string) {
+  const hx = color.trim()
+  if (hx.startsWith('#')) return hexToRgb(hx)
+  if (typeof window === 'undefined') return null
+  const probe = document.createElement('span')
+  probe.style.color = hx
+  probe.style.display = 'none'
+  document.body.appendChild(probe)
+  const resolved = getComputedStyle(probe).color
+  document.body.removeChild(probe)
+  const m = resolved.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/i)
+  if (!m) return null
+  return { r: Number(m[1]), g: Number(m[2]), b: Number(m[3]) }
+}
+
+function rgbaFromAccent(accent: string, alpha: number) {
+  const rgb = cssColorToRgb(accent) || { r: 34, g: 211, b: 238 }
+  return `rgba(${rgb.r},${rgb.g},${rgb.b},${alpha})`
+}
+
+/** ---------------- Particle BG ---------------- */
 function ParticleBg({ accentColor }: { accentColor: string }) {
   const ref = useRef<HTMLCanvasElement | null>(null)
 
@@ -168,13 +165,13 @@ function ParticleBg({ accentColor }: { accentColor: string }) {
       ctx.clearRect(0, 0, w, h)
 
       const g1 = ctx.createRadialGradient(w * 0.25, h * 0.2, 0, w * 0.25, h * 0.2, Math.min(w, h) * 0.55)
-      g1.addColorStop(0, `${accentColor}14`)
+      g1.addColorStop(0, rgbaFromAccent(accentColor, 0.08))
       g1.addColorStop(1, 'transparent')
       ctx.fillStyle = g1
       ctx.fillRect(0, 0, w, h)
 
       const g2 = ctx.createRadialGradient(w * 0.8, h * 0.65, 0, w * 0.8, h * 0.65, Math.min(w, h) * 0.5)
-      g2.addColorStop(0, `${accentColor}12`)
+      g2.addColorStop(0, rgbaFromAccent(accentColor, 0.07))
       g2.addColorStop(1, 'transparent')
       ctx.fillStyle = g2
       ctx.fillRect(0, 0, w, h)
@@ -203,17 +200,14 @@ function ParticleBg({ accentColor }: { accentColor: string }) {
     }
   }, [accentColor])
 
-  return <canvas ref={ref} className="absolute inset-0 h-full w-full" />
+  return <canvas ref={ref} className="pointer-events-none absolute inset-0 h-full w-full" />
 }
 
 function Shockwave({ accentColor, onDone }: { accentColor: string; onDone: () => void }) {
   return (
     <motion.div
       className="pointer-events-none absolute left-1/2 top-1/2 z-30 h-14 w-14 -translate-x-1/2 -translate-y-1/2 rounded-full"
-      style={{
-        border: `1.5px solid ${accentColor}`,
-        boxShadow: `0 0 16px ${accentColor}`,
-      }}
+      style={{ border: `1.5px solid ${accentColor}`, boxShadow: `0 0 16px ${accentColor}` }}
       initial={{ opacity: 0.75, scale: 0 }}
       animate={{ opacity: 0, scale: 8 }}
       transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
@@ -239,12 +233,18 @@ export default function IntroLoader({ accentColor, onDone }: IntroLoaderProps) {
   const [sloganWord, setSloganWord] = useState(-1)
 
   const [loaderOut, setLoaderOut] = useState(false)
+  const [allowPointer, setAllowPointer] = useState(true)
 
   const cubeRef = useRef<HTMLDivElement | null>(null)
   const rafRef = useRef<number | null>(null)
-
-  // ✅ StrictMode-safe: store ALL timeouts to clear
   const timeouts = useRef<number[]>([])
+  const finishedRef = useRef(false)
+
+  const clearAllTimers = useCallback(() => {
+    for (const id of timeouts.current) window.clearTimeout(id)
+    timeouts.current = []
+  }, [])
+
   const setTO = useCallback((fn: () => void, ms: number) => {
     const id = window.setTimeout(fn, ms)
     timeouts.current.push(id)
@@ -257,8 +257,6 @@ export default function IntroLoader({ accentColor, onDone }: IntroLoaderProps) {
   }, [])
 
   const rot = useRef({ x: -18, y: -20, z: 0, vx: 0, vy: 0, vz: 0, t: 0 })
-
-  // ✅ StrictMode-safe guard: never start spin twice
   const spinStarted = useRef(false)
 
   const addShock = useCallback(() => {
@@ -270,7 +268,6 @@ export default function IntroLoader({ accentColor, onDone }: IntroLoaderProps) {
     setShockwaves((p) => p.filter((s) => s.id !== id))
   }, [])
 
-  /** Alive spin after assembly */
   const startSpin = useCallback(() => {
     stopRAF()
     const r = rot.current
@@ -304,7 +301,6 @@ export default function IntroLoader({ accentColor, onDone }: IntroLoaderProps) {
     rafRef.current = requestAnimationFrame(tick)
   }, [stopRAF])
 
-  /** Dice roll (Ludo feel) */
   const startRoll = useCallback(() => {
     stopRAF()
     const r = rot.current
@@ -319,7 +315,6 @@ export default function IntroLoader({ accentColor, onDone }: IntroLoaderProps) {
 
     const start = performance.now()
     const DURATION = 1100
-
     const easeOut = (t: number) => 1 - Math.pow(1 - t, 4)
 
     const roll = () => {
@@ -327,9 +322,7 @@ export default function IntroLoader({ accentColor, onDone }: IntroLoaderProps) {
       const e = easeOut(p)
 
       if (cubeRef.current) {
-        cubeRef.current.style.transform = `rotateX(${sx + spinX * e}deg) rotateY(${sy + spinY * e}deg) rotateZ(${
-          sz + spinZ * e
-        }deg)`
+        cubeRef.current.style.transform = `rotateX(${sx + spinX * e}deg) rotateY(${sy + spinY * e}deg) rotateZ(${sz + spinZ * e}deg)`
       }
 
       if (p < 1) rafRef.current = requestAnimationFrame(roll)
@@ -339,17 +332,28 @@ export default function IntroLoader({ accentColor, onDone }: IntroLoaderProps) {
     rafRef.current = requestAnimationFrame(roll)
   }, [stopRAF])
 
-  /** Cleanup: stop everything on unmount (StrictMode-safe) */
+  const finish = useCallback(() => {
+    if (finishedRef.current) return
+    finishedRef.current = true
+
+    // Stop intercepting touches immediately
+    setAllowPointer(false)
+
+    stopRAF()
+    clearAllTimers()
+    onDone()
+  }, [onDone, stopRAF, clearAllTimers])
+
+  // cleanup on unmount
   useEffect(() => {
     return () => {
       stopRAF()
-      for (const id of timeouts.current) window.clearTimeout(id)
-      timeouts.current = []
+      clearAllTimers()
       spinStarted.current = false
     }
-  }, [stopRAF])
+  }, [stopRAF, clearAllTimers])
 
-  /** Assemble faces with staging */
+  // faces fly in
   useEffect(() => {
     FACES.forEach((_, i) => {
       setTO(() => {
@@ -374,7 +378,7 @@ export default function IntroLoader({ accentColor, onDone }: IntroLoaderProps) {
     })
   }, [addShock, setTO])
 
-  /** Start spinning after assembly (guarded) */
+  // start spin after assembled
   useEffect(() => {
     if (!allIn) return
     if (spinStarted.current) return
@@ -382,7 +386,7 @@ export default function IntroLoader({ accentColor, onDone }: IntroLoaderProps) {
     startSpin()
   }, [allIn, startSpin])
 
-  /** Progress (fast) */
+  // progress + roll
   useEffect(() => {
     let p = 0
     const iv = window.setInterval(() => {
@@ -404,7 +408,7 @@ export default function IntroLoader({ accentColor, onDone }: IntroLoaderProps) {
     return () => window.clearInterval(iv)
   }, [addShock, setTO, startRoll])
 
-  /** After roll -> dismantle -> slogan -> done */
+  // after roll: dismantle + slogan
   useEffect(() => {
     if (!rolled) return
     setTO(() => {
@@ -417,23 +421,21 @@ export default function IntroLoader({ accentColor, onDone }: IntroLoaderProps) {
     }, 120)
   }, [rolled, addShock, setTO])
 
+  // slogan words then finish
   useEffect(() => {
     if (!showSlogan) return
     SLOGAN_WORDS.forEach((_, i) => setTO(() => setSloganWord(i), i * 280))
-    setTO(() => onDone(), 280 * SLOGAN_WORDS.length + 750)
-  }, [showSlogan, onDone, setTO])
+    setTO(() => finish(), 280 * SLOGAN_WORDS.length + 750)
+  }, [showSlogan, finish, setTO])
 
-  /** ESC skip */
+  // Esc skip
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        stopRAF()
-        onDone()
-      }
+      if (e.key === 'Escape') finish()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onDone, stopRAF])
+  }, [finish])
 
   const containerGlow = useMemo(
     () => ({
@@ -443,23 +445,24 @@ export default function IntroLoader({ accentColor, onDone }: IntroLoaderProps) {
     [flashAll, accentColor]
   )
 
+  const dismantleTransform = (i: number) =>
+    loaderOut && rolling
+      ? `translateX(${i % 2 ? 280 : -280}px) translateY(${i < 2 ? -220 : i < 4 ? 220 : 0}px) ${ASSEMBLED[i]}`
+      : ASSEMBLED[i]
+
   return (
     <motion.div
       className="fixed inset-0 z-[9999] overflow-hidden"
-      style={{ background: '#03010a' }}
+      style={{ background: '#03010a', pointerEvents: allowPointer ? 'auto' : 'none' }}
       initial={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.35, ease: 'easeOut' }}
     >
       <ParticleBg accentColor={accentColor} />
 
-      {/* Skip */}
       <button
         type="button"
-        onClick={() => {
-          stopRAF()
-          onDone()
-        }}
+        onClick={finish}
         className="absolute right-4 top-4 z-50 rounded-full px-4 py-2 text-xs font-mono tracking-widest uppercase backdrop-blur"
         style={{
           border: `1px solid ${accentColor}`,
@@ -471,7 +474,6 @@ export default function IntroLoader({ accentColor, onDone }: IntroLoaderProps) {
         Skip (Esc)
       </button>
 
-      {/* Shockwaves */}
       <div className="absolute inset-0">
         <AnimatePresence>
           {shockwaves.map((s) => (
@@ -480,43 +482,17 @@ export default function IntroLoader({ accentColor, onDone }: IntroLoaderProps) {
         </AnimatePresence>
       </div>
 
-      {/* Center */}
       <div className="absolute inset-0 grid place-items-center">
         <div className="relative flex flex-col items-center">
-          {/* Cube stage */}
-          <div
-            className="relative"
-            style={{
-              width: 220,
-              height: 220,
-              perspective: 700,
-            }}
-          >
+          <div className="relative" style={{ width: 220, height: 220, perspective: 700 }}>
             <div
               className="absolute left-1/2 top-1/2"
-              style={{
-                width: FACE_SIZE,
-                height: FACE_SIZE,
-                transform: 'translate(-50%, -50%)',
-                transformStyle: 'preserve-3d',
-              }}
+              style={{ width: FACE_SIZE, height: FACE_SIZE, transform: 'translate(-50%, -50%)', transformStyle: 'preserve-3d' }}
             >
-              {/* cube */}
-              <div
-                ref={cubeRef}
-                className="absolute inset-0"
-                style={{
-                  transformStyle: 'preserve-3d',
-                  ...containerGlow,
-                }}
-              >
+              <div ref={cubeRef} className="absolute inset-0" style={{ transformStyle: 'preserve-3d', ...containerGlow }}>
                 {FACES.map((face, i) => {
                   const inNow = facesIn[i]
-
-                  const dismantle =
-                    loaderOut && rolling
-                      ? `translateX(${i % 2 ? 280 : -280}px) translateY(${i < 2 ? -220 : i < 4 ? 220 : 0}px) ${ASSEMBLED[i]}`
-                      : ASSEMBLED[i]
+                  const dismantle = dismantleTransform(i)
 
                   return (
                     <motion.div
@@ -532,38 +508,23 @@ export default function IntroLoader({ accentColor, onDone }: IntroLoaderProps) {
                         backdropFilter: 'blur(10px)',
                         boxShadow: `0 0 22px ${accentColor}35`,
                       }}
-                      initial={{
-                        opacity: 0,
-                        transform: `translate(-50%, -50%) ${FLY_FROM[i]}`,
-                      }}
+                      initial={{ opacity: 0, transform: `translate(-50%, -50%) ${FLY_FROM[i]}` }}
                       animate={{
                         opacity: inNow ? (loaderOut ? 0 : 1) : 0,
-                        transform: inNow
-                          ? `translate(-50%, -50%) ${dismantle}`
-                          : `translate(-50%, -50%) ${FLY_FROM[i]}`,
+                        transform: inNow ? `translate(-50%, -50%) ${dismantle}` : `translate(-50%, -50%) ${FLY_FROM[i]}`,
                         scale: flashAll ? 1.02 : 1,
                       }}
-                      transition={{
-                        duration: inNow ? 0.6 : 0.4,
-                        ease: [0.34, 1.4, 0.64, 1],
-                      }}
+                      transition={{ duration: inNow ? 0.6 : 0.4, ease: [0.34, 1.4, 0.64, 1] }}
                     >
                       <div
                         className="absolute inset-0 rounded-[18px]"
                         style={{
-                          background:
-                            'linear-gradient(135deg, rgba(255,255,255,0.20), rgba(255,255,255,0.04) 55%, rgba(255,255,255,0.06))',
+                          background: 'linear-gradient(135deg, rgba(255,255,255,0.20), rgba(255,255,255,0.04) 55%, rgba(255,255,255,0.06))',
                           opacity: 0.55,
                           pointerEvents: 'none',
                         }}
                       />
-                      <div
-                        className="absolute inset-0 rounded-[18px]"
-                        style={{
-                          boxShadow: `inset 0 0 22px ${accentColor}28`,
-                          pointerEvents: 'none',
-                        }}
-                      />
+                      <div className="absolute inset-0 rounded-[18px]" style={{ boxShadow: `inset 0 0 22px ${accentColor}28`, pointerEvents: 'none' }} />
                       <div className="relative z-10">
                         <face.Icon />
                       </div>
@@ -574,12 +535,9 @@ export default function IntroLoader({ accentColor, onDone }: IntroLoaderProps) {
             </div>
           </div>
 
-          {/* Progress */}
           <div className="mt-8 w-[320px] max-w-[78vw]">
             <div className="mb-3 flex items-center justify-between">
-              <div className="text-[11px] font-mono tracking-[0.18em] uppercase text-white/80">
-                {PHASES[phase]}
-              </div>
+              <div className="text-[11px] font-mono tracking-[0.18em] uppercase text-white/80">{PHASES[phase]}</div>
               <div className="text-[11px] font-mono tracking-widest text-white/60">{progress}%</div>
             </div>
 
@@ -593,10 +551,7 @@ export default function IntroLoader({ accentColor, onDone }: IntroLoaderProps) {
             >
               <div
                 className="absolute left-0 top-0 h-full rounded-full"
-                style={{
-                  width: `${progress}%`,
-                  background: `linear-gradient(90deg, ${accentColor}55, ${accentColor})`,
-                }}
+                style={{ width: `${progress}%`, background: `linear-gradient(90deg, ${accentColor}55, ${accentColor})` }}
               />
               <motion.div
                 className="absolute top-0 h-full w-24 -skew-x-12 opacity-40"
@@ -609,7 +564,6 @@ export default function IntroLoader({ accentColor, onDone }: IntroLoaderProps) {
         </div>
       </div>
 
-      {/* Slogan */}
       <AnimatePresence>
         {showSlogan && (
           <motion.div
@@ -622,10 +576,7 @@ export default function IntroLoader({ accentColor, onDone }: IntroLoaderProps) {
             <div className="text-center">
               <div
                 className="text-[44px] md:text-[64px] font-bold leading-tight text-white"
-                style={{
-                  fontFamily: 'var(--font-syne)',
-                  textShadow: `0 0 34px ${accentColor}55`,
-                }}
+                style={{ fontFamily: 'var(--font-syne)', textShadow: `0 0 34px ${accentColor}55` }}
               >
                 {SLOGAN_WORDS.map((w, i) => (
                   <motion.span
@@ -640,9 +591,7 @@ export default function IntroLoader({ accentColor, onDone }: IntroLoaderProps) {
                 ))}
               </div>
 
-              <div className="mt-4 text-xs font-mono tracking-[0.22em] uppercase text-white/70">
-                stack online ✓
-              </div>
+              <div className="mt-4 text-xs font-mono tracking-[0.22em] uppercase text-white/70">stack online ✓</div>
             </div>
           </motion.div>
         )}

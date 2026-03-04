@@ -1,29 +1,31 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ArrowRight, Download, Github, Linkedin, Mail } from 'lucide-react'
 import { useLang } from '@/lib/i18n/LangContext'
 
 const TechSphere = dynamic(() => import('@/components/three/TechSphere'), {
   ssr: false,
-  loading: () => null, // ✅ prevents visible flash
+  loading: () => (
+    <div className="w-full h-full flex items-center justify-center">
+      <div className="w-24 h-24 rounded-full border border-slate-200/70 dark:border-white/10 animate-pulse" />
+    </div>
+  ),
 })
 
 export default function Hero() {
   const { t } = useLang()
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => setMounted(true), [])
 
   return (
     <section
       id="hero"
       className="
-        min-h-screen flex items-center relative overflow-hidden
-        bg-slate-50
-        dark:bg-[#0a0a0a]
+        relative flex items-center
+        min-h-[calc(100svh-4rem)]
+        overflow-hidden
+        bg-slate-50 dark:bg-[#0a0a0a]
+        pt-10 pb-16
       "
     >
       {/* soft background glow */}
@@ -32,10 +34,18 @@ export default function Hero() {
         <div className="absolute -bottom-28 right-1/5 w-[460px] h-[460px] bg-sky-400/10 dark:bg-sky-400/6 rounded-full blur-3xl" />
       </div>
 
-      <div className="w-full relative z-10 pt-16">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-[1.15fr_0.85fr] items-center gap-4 md:gap-6">
+      <div className="w-full relative z-10">
+        <div
+          className="
+            max-w-6xl mx-auto
+            grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr]
+            items-center
+            gap-10 lg:gap-8
+            px-4 sm:px-6
+          "
+        >
           {/* LEFT */}
-          <div className="flex flex-col items-start px-6 md:pl-6 md:pr-4 xl:pl-10 xl:pr-6 py-12">
+          <div className="flex flex-col items-start">
             <div className="flex items-center gap-3 mb-8">
               <div className="flex items-center gap-1.5">
                 <div className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse" />
@@ -58,7 +68,7 @@ export default function Hero() {
             </div>
 
             <h1
-              className="text-6xl md:text-7xl font-bold leading-none mb-4"
+              className="text-5xl sm:text-6xl md:text-7xl font-bold leading-none mb-4"
               style={{ fontFamily: 'var(--font-syne)' }}
             >
               <span className="text-slate-900 dark:text-white block">{t.hero.firstName}</span>
@@ -68,7 +78,7 @@ export default function Hero() {
             </h1>
 
             <p
-              className="text-base font-medium text-cyan-700 dark:text-cyan-400 mb-6 tracking-widest uppercase"
+              className="text-sm sm:text-base font-medium text-cyan-700 dark:text-cyan-400 mb-6 tracking-widest uppercase"
               style={{ fontFamily: 'var(--font-mono)' }}
             >
               {t.hero.tagline}
@@ -88,7 +98,7 @@ export default function Hero() {
             </p>
 
             {/* Buttons */}
-            <div className="flex flex-wrap gap-3 mb-12">
+            <div className="flex flex-wrap gap-3 mb-10">
               <a href="#projects">
                 <Button
                   className="
@@ -100,9 +110,7 @@ export default function Hero() {
                   "
                   style={{ fontFamily: 'var(--font-mono)' }}
                 >
-                  <span className="text-[13px] font-semibold tracking-[0.18em] uppercase">
-                    {t.hero.cta_projects}
-                  </span>
+                  <span className="text-[13px] font-semibold tracking-[0.18em] uppercase">{t.hero.cta_projects}</span>
                   <ArrowRight className="w-4 h-4" />
                 </Button>
               </a>
@@ -122,9 +130,7 @@ export default function Hero() {
                   "
                   style={{ fontFamily: 'var(--font-mono)' }}
                 >
-                  <span className="text-[13px] font-semibold tracking-[0.18em] uppercase">
-                    {t.hero.cta_cv}
-                  </span>
+                  <span className="text-[13px] font-semibold tracking-[0.18em] uppercase">{t.hero.cta_cv}</span>
                   <Download className="w-4 h-4" />
                 </Button>
               </a>
@@ -134,7 +140,11 @@ export default function Hero() {
             <div className="flex items-center gap-3">
               {[
                 { href: 'https://github.com/Sankalpa7', icon: <Github className="w-5 h-5" />, label: 'GitHub' },
-                { href: 'https://www.linkedin.com/in/sankalpaneupane7/', icon: <Linkedin className="w-5 h-5" />, label: 'LinkedIn' },
+                {
+                  href: 'https://www.linkedin.com/in/sankalpaneupane7/',
+                  icon: <Linkedin className="w-5 h-5" />,
+                  label: 'LinkedIn',
+                },
                 { href: 'mailto:sankalpaneupane7@gmail.com', icon: <Mail className="w-5 h-5" />, label: 'Email' },
               ].map((item) => (
                 <a
@@ -160,27 +170,31 @@ export default function Hero() {
             </div>
           </div>
 
-          {/* RIGHT */}
-          <div className="hidden md:flex items-center justify-center px-4 md:pr-6 xl:pr-10 py-12">
+          {/* RIGHT (Sphere Card) */}
+          <div className="flex items-center justify-center">
             <div
               className="
                 relative
-                w-[500px] h-[500px]
+                w-full
+                max-w-[360px] sm:max-w-[420px] lg:max-w-[480px]
+                aspect-square
                 rounded-[28px]
+                overflow-hidden dark:overflow-visible
                 bg-white
                 border border-slate-200
                 shadow-[0_22px_70px_rgba(2,6,23,0.08)]
-                overflow-hidden
                 dark:bg-transparent
                 dark:border-transparent
                 dark:shadow-none
               "
             >
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(14,165,233,0.08)_0%,transparent_65%)] dark:hidden" />
+              {/* subtle radial glow only for light */}
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(14,165,233,0.10)_0%,transparent_65%)] dark:hidden" />
 
-              {/* ✅ No placeholder text; mount sphere only after hydration */}
-              <div className="relative w-full h-full flex items-center justify-center pt-4">
-                {mounted ? <TechSphere /> : null}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-[86%] h-[86%] flex items-center justify-center">
+                  <TechSphere />
+                </div>
               </div>
             </div>
           </div>
@@ -188,10 +202,8 @@ export default function Hero() {
       </div>
 
       {/* Scroll indicator */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
-        <span className="text-slate-400 dark:text-zinc-600 text-xs font-mono tracking-widest">
-          {t.hero.scroll}
-        </span>
+      <div className="absolute bottom-7 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
+        <span className="text-slate-400 dark:text-zinc-600 text-xs font-mono tracking-widest">{t.hero.scroll}</span>
         <div className="w-px h-10 bg-gradient-to-b from-slate-400 dark:from-zinc-600 to-transparent animate-pulse" />
       </div>
     </section>

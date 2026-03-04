@@ -1,64 +1,63 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { useLang } from '@/lib/i18n/LangContext'
 
-type Category = 'Job Opportunity' | 'Collaboration' | 'Question'
-type Urgency = 'Just exploring' | 'Soon' | 'ASAP'
+type Category = 'job' | 'collab' | 'question'
+type Urgency = 'exploring' | 'soon' | 'asap'
 
 type FormState = {
+  category: Category | ''
+  urgency: Urgency
   email: string
   subject: string
   message: string
-  urgency: Urgency
-  portfolioUrl: string
   attachPortfolio: boolean
-  category: Category | ''
+  portfolioUrl: string
 }
+
+type ContactCategories = { job: string; collab: string; question: string }
+type ContactUrgency = { exploring: string; soon: string; asap: string }
 
 const MESSAGE_MAX = 900
 
 const INITIAL_FORM: FormState = {
+  category: '',
+  urgency: 'exploring',
   email: '',
   subject: '',
   message: '',
-  urgency: 'Just exploring',
-  portfolioUrl: '',
   attachPortfolio: false,
-  category: '',
+  portfolioUrl: '',
 }
 
 function generateTicketId() {
   const n = Math.floor(1000 + Math.random() * 9000)
-  return `SNK-2025-${n}`
+  return `SNK-${new Date().getFullYear()}-${n}`
 }
-
-const CATEGORIES: Category[] = ['Job Opportunity', 'Collaboration', 'Question']
 
 const CATEGORY_ICONS: Record<Category, string> = {
-  'Job Opportunity': '💼',
-  Collaboration: '🤝',
-  Question: '💬',
+  job: '💼',
+  collab: '🤝',
+  question: '💬',
 }
 
-const URGENCY_OPTIONS: Urgency[] = ['Just exploring', 'Soon', 'ASAP']
-
 const URGENCY_COLOURS: Record<Urgency, string> = {
-  'Just exploring': '#22c55e',
-  Soon: '#f59e0b',
-  ASAP: '#ef4444',
+  exploring: '#22c55e',
+  soon: '#f59e0b',
+  asap: '#ef4444',
 }
 
 function ConfettiBurst() {
   const pieces = Array.from({ length: 18 }, (_, i) => i)
   const colours = ['#06b6d4', '#22c55e', '#f59e0b', '#8b5cf6', '#f43f5e', '#ffffff']
   return (
-    <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-3xl">
+    <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-[28px]">
       {pieces.map((i) => {
         const colour = colours[i % colours.length]
         const left = `${10 + ((i * 5) % 80)}%`
-        const delay = (i * 0.07).toFixed(2)
+        const delay = i * 0.07
         const size = 4 + (i % 4)
         return (
           <motion.div
@@ -72,7 +71,7 @@ function ConfettiBurst() {
               rotate: [0, i % 2 === 0 ? 180 : -180],
               scale: [1, 0.6],
             }}
-            transition={{ duration: 1.2, delay: parseFloat(delay), ease: 'easeOut' }}
+            transition={{ duration: 1.2, delay, ease: 'easeOut' }}
           />
         )
       })}
@@ -81,50 +80,38 @@ function ConfettiBurst() {
 }
 
 export default function Contact() {
-  const { t, lang } = useLang()
+  const { t, locale } = useLang()
 
-  // label helpers (no missing catLabel/urgencyLabel functions)
-  const catLabel = (c: Category) => {
-    const map =
-      t?.contact?.categories ??
-      ({
-        job: lang === 'fi' ? 'Työmahdollisuus' : 'Job Opportunity',
-        collab: lang === 'fi' ? 'Yhteistyö' : 'Collaboration',
-        question: lang === 'fi' ? 'Kysymys' : 'Question',
-      } as any)
-
-    if (c === 'Job Opportunity') return map.job ?? (lang === 'fi' ? 'Työmahdollisuus' : 'Job Opportunity')
-    if (c === 'Collaboration') return map.collab ?? (lang === 'fi' ? 'Yhteistyö' : 'Collaboration')
-    return map.question ?? (lang === 'fi' ? 'Kysymys' : 'Question')
+  const categoriesFallback: ContactCategories = {
+    job: locale === 'fi' ? 'Työtarjous' : 'Job Opportunity',
+    collab: locale === 'fi' ? 'Yhteistyö' : 'Collaboration',
+    question: locale === 'fi' ? 'Kysymys' : 'Question',
   }
 
-  const urgencyLabel = (u: Urgency) => {
-    const map =
-      t?.contact?.urgency ??
-      ({
-        explore: lang === 'fi' ? 'Vain kartoitan' : 'Just exploring',
-        soon: lang === 'fi' ? 'Pian' : 'Soon',
-        asap: lang === 'fi' ? 'Heti' : 'ASAP',
-      } as any)
-
-    if (u === 'Just exploring') return map.explore ?? (lang === 'fi' ? 'Vain kartoitan' : 'Just exploring')
-    if (u === 'Soon') return map.soon ?? (lang === 'fi' ? 'Pian' : 'Soon')
-    return map.asap ?? (lang === 'fi' ? 'Heti' : 'ASAP')
+  const urgencyFallback: ContactUrgency = {
+    exploring: locale === 'fi' ? 'Tutustumassa' : 'Just exploring',
+    soon: locale === 'fi' ? 'Pian' : 'Soon',
+    asap: locale === 'fi' ? 'Kiireellinen' : 'ASAP',
   }
+
+  const categories: ContactCategories =
+    (t?.contact?.categories as ContactCategories | undefined) ?? categoriesFallback
+
+  const urgencyMap: ContactUrgency =
+    (t?.contact?.urgency as ContactUrgency | undefined) ?? urgencyFallback
 
   const [form, setForm] = useState<FormState>(INITIAL_FORM)
   const [isTyping, setIsTyping] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [submitError, setSubmitError] = useState('')
-  const [ticketId, setTicketId] = useState('SNK-2025-0001')
-  const [lastTicketId, setLastTicketId] = useState('SNK-2025-0001')
+  const [ticketId, setTicketId] = useState('SNK-0000-0000') // stable SSR-safe placeholder
+  const [lastTicketId, setLastTicketId] = useState('SNK-0000-0000')
   const [year, setYear] = useState(2025)
   const [hovering, setHovering] = useState(false)
   const [showConfetti, setShowConfetti] = useState(false)
 
   const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const messageRef = useRef<HTMLTextAreaElement | null>(null)
 
   useEffect(() => {
     const id = generateTicketId()
@@ -133,7 +120,6 @@ export default function Contact() {
     setYear(new Date().getFullYear())
   }, [])
 
-  // ✅ UX: smooth scroll to contact section after submit success
   useEffect(() => {
     if (!submitted) return
     window.scrollTo({
@@ -141,6 +127,21 @@ export default function Contact() {
       behavior: 'smooth',
     })
   }, [submitted])
+
+  const charCount = form.message.length
+  const charLeft = useMemo(() => MESSAGE_MAX - charCount, [charCount])
+
+  const catLabel = (c: Category) => {
+    if (c === 'job') return categories.job
+    if (c === 'collab') return categories.collab
+    return categories.question
+  }
+
+  const urgencyLabel = (u: Urgency) => {
+    if (u === 'exploring') return urgencyMap.exploring
+    if (u === 'soon') return urgencyMap.soon
+    return urgencyMap.asap
+  }
 
   const handleMessageChange = (val: string) => {
     const trimmed = val.length > MESSAGE_MAX ? val.slice(0, MESSAGE_MAX) : val
@@ -150,13 +151,11 @@ export default function Contact() {
     typingTimer.current = setTimeout(() => setIsTyping(false), 1200)
   }
 
-  const selectCategory = (cat: Category) => {
-    setForm((f) => ({ ...f, category: cat }))
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.email || !form.message) return
+    if (!form.email.trim() || !form.message.trim()) return
+    if (isSubmitting) return
+
     setIsSubmitting(true)
     setSubmitError('')
 
@@ -176,9 +175,9 @@ export default function Contact() {
     } catch {
       setSubmitError(
         t?.contact?.error_msg ??
-          (lang === 'fi'
+          (locale === 'fi'
             ? 'Viestin lähetys epäonnistui. Yritä uudelleen hetken kuluttua.'
-            : 'Message failed to send. Please try again in a moment.'),
+            : 'Message failed to send. Please try again in a moment.')
       )
     } finally {
       setIsSubmitting(false)
@@ -188,18 +187,17 @@ export default function Contact() {
   const handleReset = () => {
     const newId = generateTicketId()
     setTicketId(newId)
-    setLastTicketId(newId) // ✅ keep consistent
+    setLastTicketId(newId)
     setForm(INITIAL_FORM)
     setSubmitError('')
     setSubmitted(false)
   }
 
-  const submitIdle = t?.contact?.submit_idle ?? (lang === 'fi' ? 'LÄHETÄ' : 'SEND')
-  const submitHover = t?.contact?.submit_hover ?? (lang === 'fi' ? 'LÄHETETÄÄN' : 'SENDING')
-  const emailPh = t?.contact?.field_email_placeholder ?? (lang === 'fi' ? 'sinun@email.fi' : 'you@example.com')
-  const subjectPh = t?.contact?.field_subject_placeholder ?? (lang === 'fi' ? 'Aihe…' : 'Subject…')
-  const messagePh = t?.contact?.field_message_placeholder ?? (lang === 'fi' ? 'Kirjoita viestisi…' : 'Write your message…')
-  const attachPh = t?.contact?.attach_placeholder ?? (lang === 'fi' ? 'Portfolio-linkki (valinnainen)' : 'Portfolio URL (optional)')
+  const activity = (t?.contact?.activity ?? []) as string[]
+
+  const submitIdle = t?.contact?.submit_idle ?? (locale === 'fi' ? 'LÄHETÄ VIESTI' : 'SEND MESSAGE')
+  const submitHover = t?.contact?.submit_hover ?? (locale === 'fi' ? 'LUO TIKETTI' : 'CREATE TICKET')
+  const submitLoading = t?.contact?.submit_loading ?? (locale === 'fi' ? 'LUODAAN…' : 'CREATING…')
 
   return (
     <section id="contact" className="py-24 bg-[#f5f5f5] dark:bg-[#050505] relative overflow-hidden">
@@ -212,24 +210,27 @@ export default function Contact() {
       <div className="max-w-6xl mx-auto px-6 md:px-10 lg:px-6 xl:px-0 relative z-10">
         {/* heading */}
         <div className="flex items-center gap-4 mb-3">
-          <span className="text-cyan-500 text-xs font-mono tracking-[0.25em]">{t?.contact?.section ?? '// 06'}</span>
+          <span className="text-cyan-500 text-xs font-mono tracking-[0.25em]">{t?.contact?.section ?? '// 07'}</span>
           <div className="w-10 h-px bg-cyan-500" />
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white" style={{ fontFamily: 'var(--font-syne)' }}>
-            {t?.contact?.title ?? (lang === 'fi' ? 'Yhteys' : 'Contact')}
+          <h2
+            className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white"
+            style={{ fontFamily: 'var(--font-syne)' }}
+          >
+            {t?.contact?.title ?? 'Contact'}
           </h2>
           <div className="flex-1 h-px bg-zinc-300 dark:bg-zinc-800" />
         </div>
 
-        <p className="text-xs md:text-sm font-mono text-zinc-700 dark:text-zinc-400 max-w-xl mb-12">
-          {t?.contact?.subtitle ??
-            (lang === 'fi' ? 'Lähetä viesti — vastaan mahdollisimman pian.' : 'Send a message — I’ll get back to you as soon as possible.')}
+        {/* ✅ dark mode subtitle brighter */}
+        <p className="text-xs md:text-sm font-mono text-zinc-700 dark:text-zinc-300/80 max-w-xl mb-12">
+          {t?.contact?.subtitle ?? ''}
         </p>
 
-        {/* ✅ IMPORTANT: stretch columns so height stays consistent */}
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)] gap-8 xl:gap-16 items-stretch">
-          {/* LEFT */}
+          {/* LEFT column */}
           <div className="flex flex-col gap-4 h-full">
-            <div className="relative rounded-[28px] border border-zinc-200 dark:border-zinc-800 bg-white/85 dark:bg-zinc-950/70 px-7 py-7 overflow-hidden">
+            {/* ✅ dark card slightly brighter + borders a touch clearer */}
+            <div className="relative rounded-[28px] border border-zinc-200 dark:border-zinc-800/80 bg-white/85 dark:bg-zinc-950/75 px-7 py-7 overflow-hidden">
               <div className="absolute -top-12 -left-12 w-40 h-40 bg-cyan-500/10 rounded-full blur-2xl pointer-events-none" />
 
               <div className="flex items-center gap-2 mb-5">
@@ -237,33 +238,45 @@ export default function Contact() {
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500" />
                 </span>
-                <span className="text-[12px] font-mono text-zinc-500 dark:text-zinc-400 uppercase tracking-[0.2em]">
-                  {t?.contact?.status ?? (lang === 'fi' ? 'Saatavilla' : 'Available')}
+
+                {/* ✅ dark label brighter */}
+                <span className="text-[12px] font-mono text-zinc-500 dark:text-zinc-300/70 uppercase tracking-[0.2em]">
+                  {t?.contact?.status ?? ''}
                 </span>
               </div>
 
-              <h3 className="text-xl md:text-2xl font-bold text-zinc-900 dark:text-white mb-1 leading-snug" style={{ fontFamily: 'var(--font-syne)' }}>
-                {t?.contact?.heading_line1 ?? (lang === 'fi' ? 'Otetaan yhteyttä' : 'Let’s connect')}
+              <h3
+                className="text-xl md:text-2xl font-bold text-zinc-900 dark:text-white mb-1 leading-snug"
+                style={{ fontFamily: 'var(--font-syne)' }}
+              >
+                {t?.contact?.heading_line1 ?? ''}
                 <br />
                 <span className="text-[#00E5FF]">{t?.contact?.heading_name ?? 'Sankalpa'}</span>
               </h3>
-              <p className="text-[13px] font-mono text-zinc-500 dark:text-zinc-400 mb-7">
-                {t?.contact?.heading_sub ?? (lang === 'fi' ? 'Valitse aihe ja lähetä viesti.' : 'Pick a category and send a message.')}
+
+              {/* ✅ dark paragraph brighter */}
+              <p className="text-[13px] font-mono text-zinc-600 dark:text-zinc-300/80 mb-7">
+                {t?.contact?.heading_sub ?? ''}
               </p>
 
               <div className="flex flex-wrap gap-2 mb-6">
-                {CATEGORIES.map((cat) => {
+                {(['job', 'collab', 'question'] as Category[]).map((cat) => {
                   const isActive = form.category === cat
                   return (
                     <button
                       key={cat}
                       type="button"
-                      onClick={() => selectCategory(cat)}
+                      onClick={() => setForm((f) => ({ ...f, category: cat }))}
                       className="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[12px] font-mono border transition-all duration-200"
                       style={
                         isActive
                           ? { backgroundColor: '#00E5FF20', borderColor: '#00E5FF70', color: '#00E5FF' }
-                          : { backgroundColor: 'transparent', borderColor: 'rgba(161,161,170,0.25)', color: 'rgba(161,161,170,0.7)' }
+                          : {
+                              backgroundColor: 'transparent',
+                              borderColor: 'rgba(161,161,170,0.25)',
+                              // ✅ dark inactive text brighter
+                              color: 'rgba(228,228,231,0.75)',
+                            }
                       }
                     >
                       <span>{CATEGORY_ICONS[cat]}</span>
@@ -273,78 +286,71 @@ export default function Contact() {
                 })}
               </div>
 
-              {/* ✅ nicer separator */}
               <div className="h-px bg-gradient-to-r from-transparent via-zinc-300 dark:via-zinc-700 to-transparent mb-6" />
 
               <div className="flex flex-col gap-3.5 mb-7">
                 <div className="flex items-center gap-2.5">
                   <div className="h-7 w-7 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center shrink-0">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" strokeWidth="2">
-                      <circle cx="12" cy="12" r="10" />
-                      <polyline points="12 6 12 12 16 14" />
-                    </svg>
+                    <span className="text-[11px]">⏱️</span>
                   </div>
-                  <span className="text-[13px] font-mono text-zinc-600 dark:text-zinc-400">
-                    {t?.contact?.sla_reply ?? (lang === 'fi' ? 'Vastausaika:' : 'Reply time:')}{' '}
-                    <span className="text-zinc-900 dark:text-zinc-200">{t?.contact?.sla_reply_val ?? '24–48h'}</span>
+                  {/* ✅ dark info text brighter */}
+                  <span className="text-[13px] font-mono text-zinc-600 dark:text-zinc-300/80">
+                    {t?.contact?.sla_reply ?? ''}{' '}
+                    <span className="text-zinc-900 dark:text-zinc-100">{t?.contact?.sla_reply_val ?? ''}</span>
                   </span>
                 </div>
 
                 <div className="flex items-center gap-2.5">
                   <div className="h-7 w-7 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center shrink-0">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" strokeWidth="2">
-                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-                      <polyline points="22,6 12,13 2,6" />
-                    </svg>
+                    <span className="text-[11px]">✉️</span>
                   </div>
-                  <span className="text-[13px] font-mono text-zinc-600 dark:text-zinc-400">
-                    {t?.contact?.sla_preferred ?? (lang === 'fi' ? 'Mieluiten:' : 'Preferred:')}{' '}
-                    <span className="text-zinc-900 dark:text-zinc-200">{t?.contact?.sla_preferred_val ?? (lang === 'fi' ? 'Sähköposti' : 'Email')}</span>
+                  <span className="text-[13px] font-mono text-zinc-600 dark:text-zinc-300/80">
+                    {t?.contact?.sla_preferred ?? ''}{' '}
+                    <span className="text-zinc-900 dark:text-zinc-100">{t?.contact?.sla_preferred_val ?? ''}</span>
                   </span>
                 </div>
 
                 <div className="flex items-center gap-2.5">
                   <div className="h-7 w-7 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center shrink-0">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" strokeWidth="2">
-                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                      <circle cx="12" cy="10" r="3" />
-                    </svg>
+                    <span className="text-[11px]">📍</span>
                   </div>
-                  <span className="text-[13px] font-mono text-zinc-600 dark:text-zinc-400">
-                    {t?.contact?.sla_based ?? (lang === 'fi' ? 'Sijainti:' : 'Based in:')}{' '}
-                    <span className="text-zinc-900 dark:text-zinc-200">{t?.contact?.sla_based_val ?? (lang === 'fi' ? 'Suomi' : 'Finland')}</span>
+                  <span className="text-[13px] font-mono text-zinc-600 dark:text-zinc-300/80">
+                    {t?.contact?.sla_based ?? ''}{' '}
+                    <span className="text-zinc-900 dark:text-zinc-100">{t?.contact?.sla_based_val ?? ''}</span>
                   </span>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between pt-4 border-t border-zinc-200 dark:border-zinc-800">
-                <span className="text-[12px] font-mono text-zinc-400 dark:text-zinc-500 uppercase tracking-[0.18em]">
-                  {t?.contact?.ticket_id ?? (lang === 'fi' ? 'Tunnus' : 'Ticket')}
+              <div className="flex items-center justify-between pt-4 border-t border-zinc-200 dark:border-zinc-800/80">
+                <span className="text-[12px] font-mono text-zinc-400 dark:text-zinc-300/60 uppercase tracking-[0.18em]">
+                  {t?.contact?.ticket_id ?? 'Ticket'}
                 </span>
                 <span className="text-[13px] font-mono tracking-[0.15em] text-[#00E5FF]">{ticketId}</span>
               </div>
             </div>
 
-            <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white/85 dark:bg-zinc-950/70 px-5 py-4">
-              <p className="text-[12px] font-mono text-zinc-400 uppercase tracking-[0.2em] mb-4">
-                {t?.contact?.activity_title ?? (lang === 'fi' ? 'Tällä hetkellä' : 'Currently')}
+            <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800/80 bg-white/85 dark:bg-zinc-950/75 px-5 py-4">
+              <p className="text-[12px] font-mono text-zinc-400 dark:text-zinc-300/60 uppercase tracking-[0.2em] mb-4">
+                {t?.contact?.activity_title ?? ''}
               </p>
               <div className="flex flex-col gap-2">
-                {[
-                  { dot: '#22c55e', text: t?.contact?.activity_1 ?? (lang === 'fi' ? 'Pro gradu käynnissä' : "Master's thesis in progress") },
-                  { dot: '#06b6d4', text: t?.contact?.activity_2 ?? (lang === 'fi' ? 'Haen pilvi-/IT-rooleja' : 'Actively seeking cloud / IT roles') },
-                  { dot: '#8b5cf6', text: t?.contact?.activity_3 ?? (lang === 'fi' ? 'Portfolio v2 julkaistu' : 'Portfolio v2 shipped') },
-                ].map((item) => (
-                  <div key={item.text} className="flex items-center gap-2.5">
-                    <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: item.dot }} />
-                    <span className="text-[13px] font-mono text-zinc-600 dark:text-zinc-400">{item.text}</span>
+                {activity.slice(0, 3).map((text, idx) => (
+                  <div key={idx} className="flex items-center gap-2.5">
+                    <span
+                      className="h-1.5 w-1.5 rounded-full shrink-0"
+                      style={{ backgroundColor: idx === 0 ? '#22c55e' : idx === 1 ? '#06b6d4' : '#8b5cf6' }}
+                    />
+                    {/* ✅ dark activity brighter */}
+                    <span className="text-[13px] font-mono text-zinc-600 dark:text-zinc-300/80">{text}</span>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white/85 dark:bg-zinc-950/70 px-5 py-4 flex items-center gap-3">
-              <p className="text-[11px] font-mono text-zinc-400 uppercase tracking-[0.2em] shrink-0">{t?.contact?.reach ?? (lang === 'fi' ? 'Tavoita' : 'Reach')}</p>
+            <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800/80 bg-white/85 dark:bg-zinc-950/75 px-5 py-4 flex items-center gap-3">
+              <p className="text-[11px] font-mono text-zinc-400 dark:text-zinc-300/60 uppercase tracking-[0.2em] shrink-0">
+                {t?.contact?.reach ?? ''}
+              </p>
               <div className="flex gap-2 flex-wrap items-center">
                 {[
                   { label: 'LinkedIn', href: 'https://www.linkedin.com/in/sankalpaneupane7/', colour: '#0ea5e9' },
@@ -366,7 +372,7 @@ export default function Contact() {
             </div>
           </div>
 
-          {/* RIGHT */}
+          {/* RIGHT column */}
           <div className="relative h-full">
             <AnimatePresence mode="wait">
               {submitted ? (
@@ -376,79 +382,40 @@ export default function Contact() {
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.98, y: 10 }}
                   transition={{ duration: 0.4, ease: 'easeOut' }}
-                  className="relative rounded-[28px] border border-zinc-200 dark:border-zinc-800 bg-white/85 dark:bg-zinc-950/70 px-8 py-12 flex flex-col items-center text-center overflow-hidden h-full"
+                  className="relative rounded-[28px] border border-zinc-200 dark:border-zinc-800/80 bg-white/85 dark:bg-zinc-950/75 px-8 py-12 flex flex-col items-center text-center overflow-hidden h-full"
                 >
                   {showConfetti && <ConfettiBurst />}
 
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: 'spring', stiffness: 200, damping: 14, delay: 0.1 }}
-                    className="h-16 w-16 rounded-2xl flex items-center justify-center mb-6"
-                    style={{ border: '1px solid #00E5FF50', backgroundColor: '#00E5FF15' }}
-                  >
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="2.5">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                  </motion.div>
+                  <div className="h-16 w-16 rounded-2xl flex items-center justify-center mb-6" style={{ border: '1px solid #00E5FF50', backgroundColor: '#00E5FF15' }}>
+                    <span className="text-2xl">✅</span>
+                  </div>
 
-                  <motion.h3
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                    className="text-2xl font-bold text-zinc-900 dark:text-white mb-2"
-                    style={{ fontFamily: 'var(--font-syne)' }}
-                  >
-                    {t?.contact?.success_title ?? (lang === 'fi' ? 'Viesti lähetetty!' : 'Message sent!')}
-                  </motion.h3>
+                  <h3 className="text-2xl font-bold text-zinc-900 dark:text-white mb-2" style={{ fontFamily: 'var(--font-syne)' }}>
+                    {t?.contact?.success_title ?? 'Ticket created.'}
+                  </h3>
 
-                  <motion.p
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.28 }}
-                    className="text-[13px] font-mono text-zinc-500 dark:text-zinc-400 mb-6 max-w-xs"
-                  >
-                    {t?.contact?.success_sub ?? (lang === 'fi' ? 'Palaan asiaan pian. Tarkista sähköpostisi.' : "I’ll get back to you soon. Keep an eye on your inbox.")}
-                  </motion.p>
+                  {/* ✅ dark success text brighter */}
+                  <p className="text-[13px] font-mono text-zinc-500 dark:text-zinc-300/80 mb-6 max-w-xs">
+                    {t?.contact?.success_sub ?? ''}
+                  </p>
 
-                  <motion.div
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.36 }}
-                    className="px-5 py-2.5 rounded-full text-[13px] font-mono tracking-[0.15em] mb-8"
-                    style={{ border: '1px solid #00E5FF50', color: '#00E5FF', backgroundColor: '#00E5FF0F' }}
-                  >
-                    {(t?.contact?.success_ref ?? (lang === 'fi' ? 'Tunnus:' : 'Reference:'))} {lastTicketId}
-                  </motion.div>
+                  <div className="px-5 py-2.5 rounded-full text-[13px] font-mono tracking-[0.15em] mb-8" style={{ border: '1px solid #00E5FF50', color: '#00E5FF', backgroundColor: '#00E5FF0F' }}>
+                    {(t?.contact?.success_ref ?? 'Ticket Ref:')} {lastTicketId}
+                  </div>
 
-                  <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.44 }} className="text-[13px] font-mono text-zinc-400 italic mb-10">
-                    {t?.contact?.success_quote ?? '“Thank you for reaching out. – Sankalpa”'}
-                  </motion.p>
+                  <p className="text-[13px] font-mono text-zinc-400 dark:text-zinc-300/70 italic mb-10">
+                    {t?.contact?.success_quote ?? ''}
+                  </p>
 
                   <motion.button
                     type="button"
                     onClick={handleReset}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.52 }}
                     whileHover={{ scale: 1.04 }}
                     whileTap={{ scale: 0.97 }}
                     className="flex items-center gap-2 px-6 py-3 rounded-full text-[12px] font-mono border transition-all duration-200"
-                    style={{ borderColor: 'rgba(161,161,170,0.3)', color: 'rgba(161,161,170,0.7)' }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = '#00E5FF'
-                      e.currentTarget.style.color = '#00E5FF'
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = 'rgba(161,161,170,0.3)'
-                      e.currentTarget.style.color = 'rgba(161,161,170,0.7)'
-                    }}
+                    style={{ borderColor: 'rgba(161,161,170,0.35)', color: 'rgba(228,228,231,0.75)' }}
                   >
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <polyline points="1 4 1 10 7 10" />
-                      <path d="M3.51 15a9 9 0 1 0 .49-3.5" />
-                    </svg>
-                    {t?.contact?.send_another ?? (lang === 'fi' ? 'Lähetä uusi viesti' : 'Send another message')}
+                    ↺ {t?.contact?.send_another ?? 'Send another message'}
                   </motion.button>
                 </motion.div>
               ) : (
@@ -458,21 +425,26 @@ export default function Contact() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="rounded-[28px] border border-zinc-200 dark:border-zinc-800 bg-white/85 dark:bg-zinc-950/70 px-7 py-8 flex flex-col gap-6 h-full"
+                  className="rounded-[28px] border border-zinc-200 dark:border-zinc-800/80 bg-white/85 dark:bg-zinc-950/75 px-7 py-8 flex flex-col gap-6 h-full"
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-[12px] font-mono text-zinc-400 uppercase tracking-[0.2em] mb-1">{t?.contact?.form_new ?? (lang === 'fi' ? 'Uusi viesti' : 'New message')}</p>
+                      <p className="text-[12px] font-mono text-zinc-400 dark:text-zinc-300/60 uppercase tracking-[0.2em] mb-1">
+                        {t?.contact?.form_new ?? 'New request'}
+                      </p>
                       <h3 className="text-lg font-bold text-zinc-900 dark:text-white" style={{ fontFamily: 'var(--font-syne)' }}>
-                        {t?.contact?.form_title ?? (lang === 'fi' ? 'Lähetä viesti' : 'Send a message')}
+                        {t?.contact?.form_title ?? 'Ticket details'}
                       </h3>
                     </div>
 
                     <div className="flex flex-col items-end gap-1">
-                      <p className="text-[12px] font-mono text-zinc-400 uppercase tracking-[0.15em]">{t?.contact?.priority ?? (lang === 'fi' ? 'Prioriteetti' : 'Priority')}</p>
+                      <p className="text-[12px] font-mono text-zinc-400 dark:text-zinc-300/60 uppercase tracking-[0.15em]">
+                        {t?.contact?.priority ?? 'Priority'}
+                      </p>
                       <div className="flex gap-1">
-                        {URGENCY_OPTIONS.map((u) => {
+                        {(['exploring', 'soon', 'asap'] as Urgency[]).map((u) => {
                           const isActive = form.urgency === u
+                          const c = URGENCY_COLOURS[u]
                           return (
                             <button
                               key={u}
@@ -481,8 +453,12 @@ export default function Contact() {
                               className="px-3 py-1.5 rounded-full text-[11px] font-mono border transition-all duration-200"
                               style={
                                 isActive
-                                  ? { backgroundColor: URGENCY_COLOURS[u] + '20', borderColor: URGENCY_COLOURS[u] + '60', color: URGENCY_COLOURS[u] }
-                                  : { backgroundColor: 'transparent', borderColor: 'rgba(161,161,170,0.2)', color: 'rgba(161,161,170,0.5)' }
+                                  ? { backgroundColor: c + '20', borderColor: c + '60', color: c }
+                                  : {
+                                      backgroundColor: 'transparent',
+                                      borderColor: 'rgba(161,161,170,0.25)',
+                                      color: 'rgba(228,228,231,0.70)',
+                                    }
                               }
                             >
                               {urgencyLabel(u)}
@@ -493,47 +469,46 @@ export default function Contact() {
                     </div>
                   </div>
 
-                  <div className="h-px bg-zinc-200 dark:bg-zinc-800 my-1" />
+                  <div className="h-px bg-zinc-200 dark:bg-zinc-800/80 my-1" />
 
-                  {/* email */}
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[12px] font-mono text-zinc-500 uppercase tracking-[0.15em]">
-                      {t?.contact?.field_email ?? (lang === 'fi' ? 'Sähköposti' : 'Email')} <span className="text-[#00E5FF]">*</span>
+                    <label className="text-[12px] font-mono text-zinc-500 dark:text-zinc-300/70 uppercase tracking-[0.15em]">
+                      {t?.contact?.field_email ?? 'Contact handle'} <span className="text-[#00E5FF]">*</span>
                     </label>
                     <input
                       type="email"
                       required
-                      placeholder={emailPh}
+                      placeholder={t?.contact?.field_email_placeholder ?? 'your@email.com'}
                       value={form.email}
                       onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                      className="w-full rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/80 px-4 py-3.5 text-[14px] font-mono text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-600 outline-none focus:border-[#00E5FF80] focus:ring-2 focus:ring-[#00E5FF30] transition-all"
+                      className="w-full rounded-2xl border border-zinc-200 dark:border-zinc-800/80 bg-zinc-50 dark:bg-zinc-900/90 px-4 py-3.5 text-[14px] font-mono text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 outline-none focus:border-[#00E5FF80] focus:ring-2 focus:ring-[#00E5FF30] transition-all"
                     />
                   </div>
 
-                  {/* subject */}
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[12px] font-mono text-zinc-500 uppercase tracking-[0.15em]">{t?.contact?.field_subject ?? (lang === 'fi' ? 'Aihe' : 'Subject')}</label>
+                    <label className="text-[12px] font-mono text-zinc-500 dark:text-zinc-300/70 uppercase tracking-[0.15em]">
+                      {t?.contact?.field_subject ?? 'What can I help you with?'}
+                    </label>
                     <input
                       type="text"
-                      placeholder={form.category ? catLabel(form.category as Category) : subjectPh}
+                      placeholder={t?.contact?.field_subject_placeholder ?? 'e.g. Frontend role at Acme Corp'}
                       value={form.subject}
                       onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))}
-                      className="w-full rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/80 px-4 py-3.5 text-[14px] font-mono text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-600 outline-none focus:border-[#00E5FF80] focus:ring-2 focus:ring-[#00E5FF30] transition-all"
+                      className="w-full rounded-2xl border border-zinc-200 dark:border-zinc-800/80 bg-zinc-50 dark:bg-zinc-900/90 px-4 py-3.5 text-[14px] font-mono text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 outline-none focus:border-[#00E5FF80] focus:ring-2 focus:ring-[#00E5FF30] transition-all"
                     />
                   </div>
 
-                  {/* message */}
                   <div className="flex flex-col gap-1.5">
                     <div className="flex items-center justify-between">
-                      <label className="text-[12px] font-mono text-zinc-500 uppercase tracking-[0.15em]">
-                        {t?.contact?.field_message ?? (lang === 'fi' ? 'Viesti' : 'Message')} <span className="text-[#00E5FF]">*</span>
+                      <label className="text-[12px] font-mono text-zinc-500 dark:text-zinc-300/70 uppercase tracking-[0.15em]">
+                        {t?.contact?.field_message ?? 'Describe your request'} <span className="text-[#00E5FF]">*</span>
                       </label>
 
                       <AnimatePresence>
                         {isTyping && (
-                          <motion.div initial={{ opacity: 0, x: 6 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 6 }} className="flex items-center gap-1.5">
-                            <span className="text-[12px] font-mono text-[#00E5FF] tracking-wide">{t?.contact?.building ?? (lang === 'fi' ? 'Kirjoitetaan' : 'Typing')}</span>
-                            <span className="flex gap-0.5">
+                          <motion.div initial={{ opacity: 0, x: 6 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 6 }} className="flex items-center gap-2">
+                            <span className="text-[12px] font-mono text-[#00E5FF] tracking-wide">{t?.contact?.building ?? 'building ticket'}</span>
+                            <span className="flex gap-1">
                               {[0, 1, 2].map((i) => (
                                 <motion.span
                                   key={i}
@@ -549,45 +524,48 @@ export default function Contact() {
                     </div>
 
                     <textarea
-                      ref={messageRef}
                       required
                       rows={5}
-                      placeholder={messagePh}
+                      placeholder={t?.contact?.field_message_placeholder ?? ''}
                       value={form.message}
                       onChange={(e) => handleMessageChange(e.target.value)}
-                      className="w-full rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/80 px-4 py-3.5 text-[14px] font-mono text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-600 outline-none focus:border-[#00E5FF80] focus:ring-2 focus:ring-[#00E5FF30] transition-all resize-none"
+                      className="w-full rounded-2xl border border-zinc-200 dark:border-zinc-800/80 bg-zinc-50 dark:bg-zinc-900/90 px-4 py-3.5 text-[14px] font-mono text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 outline-none focus:border-[#00E5FF80] focus:ring-2 focus:ring-[#00E5FF30] transition-all resize-none"
                     />
-                    <div className="flex justify-between text-[11px] font-mono text-zinc-400">
-                      <span>
-                        {t?.contact?.chars_up_to ?? (lang === 'fi' ? 'Enintään' : 'Up to')} {MESSAGE_MAX}{' '}
-                        {t?.contact?.chars_label ?? (lang === 'fi' ? 'merkkiä' : 'characters')}
-                      </span>
-                      <span className={form.message.length >= MESSAGE_MAX ? 'text-red-400' : ''}>
-                        {form.message.length} / {MESSAGE_MAX}
+
+                    {/* ✅ dark counter brighter */}
+                    <div className="flex justify-between text-[11px] font-mono text-zinc-400 dark:text-zinc-300/60">
+                      <span>{t?.contact?.char_limit ?? 'Up to 900 characters'}</span>
+                      <span className={charLeft <= 0 ? 'text-red-400' : ''}>
+                        {charCount} / {MESSAGE_MAX}
                       </span>
                     </div>
                   </div>
 
-                  {/* attach portfolio */}
                   <div className="flex flex-col gap-2">
-                    <button type="button" onClick={() => setForm((f) => ({ ...f, attachPortfolio: !f.attachPortfolio }))} className="flex items-center gap-3 group">
+                    <button
+                      type="button"
+                      onClick={() => setForm((f) => ({ ...f, attachPortfolio: !f.attachPortfolio }))}
+                      className="flex items-center gap-3 group"
+                    >
                       <div
                         className="relative h-5 w-9 rounded-full border transition-all duration-300"
                         style={{
                           backgroundColor: form.attachPortfolio ? '#00E5FF30' : 'transparent',
-                          borderColor: form.attachPortfolio ? '#00E5FF80' : 'rgba(161,161,170,0.3)',
+                          borderColor: form.attachPortfolio ? '#00E5FF80' : 'rgba(161,161,170,0.35)',
                         }}
                       >
                         <div
                           className="absolute top-0.5 h-4 w-4 rounded-full transition-all duration-300"
                           style={{
-                            backgroundColor: form.attachPortfolio ? '#00E5FF' : 'rgba(161,161,170,0.5)',
+                            backgroundColor: form.attachPortfolio ? '#00E5FF' : 'rgba(228,228,231,0.55)',
                             left: form.attachPortfolio ? '17px' : '1px',
                           }}
                         />
                       </div>
-                      <span className="text-[13px] font-mono text-zinc-600 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-zinc-200 transition-colors">
-                        {t?.contact?.attach_toggle ?? (lang === 'fi' ? 'Liitä portfolio-linkki' : 'Attach portfolio link')}
+
+                      {/* ✅ dark toggle label brighter */}
+                      <span className="text-[13px] font-mono text-zinc-600 dark:text-zinc-300/75 group-hover:text-zinc-900 dark:group-hover:text-zinc-100 transition-colors">
+                        {t?.contact?.attach_toggle ?? 'Attach a CV / portfolio link'}
                       </span>
                     </button>
 
@@ -596,17 +574,16 @@ export default function Contact() {
                         <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden">
                           <input
                             type="url"
-                            placeholder={attachPh}
+                            placeholder={t?.contact?.attach_placeholder ?? 'https://your-portfolio.com'}
                             value={form.portfolioUrl}
                             onChange={(e) => setForm((f) => ({ ...f, portfolioUrl: e.target.value }))}
-                            className="w-full rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/80 px-4 py-3.5 text-[14px] font-mono text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-600 outline-none focus:border-[#00E5FF80] focus:ring-2 focus:ring-[#00E5FF30] transition-all"
+                            className="w-full rounded-2xl border border-zinc-200 dark:border-zinc-800/80 bg-zinc-50 dark:bg-zinc-900/90 px-4 py-3.5 text-[14px] font-mono text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 outline-none focus:border-[#00E5FF80] focus:ring-2 focus:ring-[#00E5FF30] transition-all"
                           />
                         </motion.div>
                       )}
                     </AnimatePresence>
                   </div>
 
-                  {/* error banner */}
                   <AnimatePresence>
                     {submitError && (
                       <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-[12px] font-mono text-red-400">
@@ -615,10 +592,9 @@ export default function Contact() {
                     )}
                   </AnimatePresence>
 
-                  {/* submit */}
                   <motion.button
                     type="submit"
-                    disabled={isSubmitting || !form.email || !form.message}
+                    disabled={isSubmitting || !form.email.trim() || !form.message.trim()}
                     onHoverStart={() => setHovering(true)}
                     onHoverEnd={() => setHovering(false)}
                     whileTap={{ scale: 0.97 }}
@@ -645,24 +621,12 @@ export default function Contact() {
                       )}
                     </AnimatePresence>
 
-                    {isSubmitting ? (
-                      <span className="flex items-center justify-center gap-2">
-                        <motion.span animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }} className="inline-block h-3.5 w-3.5 border-2 border-black/30 border-t-black rounded-full" />
-                        {t?.contact?.submit_loading ?? (lang === 'fi' ? 'LÄHETETÄÄN' : 'SENDING')}
-                      </span>
-                    ) : (
-                      <span className="flex items-center justify-center gap-2">
-                        {hovering ? submitHover : submitIdle}
-                        <motion.span animate={hovering ? { x: [0, 3, 0] } : { x: 0 }} transition={{ duration: 0.6, repeat: Infinity }}>
-                          ↗
-                        </motion.span>
-                      </span>
-                    )}
+                    {isSubmitting ? submitLoading : hovering ? submitHover : submitIdle}
                   </motion.button>
 
-                  <p className="text-[13px] font-mono text-zinc-400 text-center mt-3">
-                    {t?.contact?.footer_note ??
-                      (lang === 'fi' ? 'En tallenna tietojasi — viesti lähetetään vain sähköpostina.' : 'I don’t store your data — the message is sent via email only.')}
+                  {/* ✅ dark footer note brighter */}
+                  <p className="text-[13px] font-mono text-zinc-400 dark:text-zinc-300/70 text-center mt-3">
+                    {t?.contact?.footer_note ?? ''}
                   </p>
                 </motion.form>
               )}
@@ -671,39 +635,43 @@ export default function Contact() {
         </div>
       </div>
 
-      {/* footer */}
-      <div className="max-w-6xl mx-auto px-6 md:px-10 lg:px-6 xl:px-0 mt-20 pt-8 border-t border-zinc-200 dark:border-zinc-700">
+      <div className="max-w-6xl mx-auto px-6 md:px-10 lg:px-6 xl:px-0 mt-20 pt-8 border-t border-zinc-200 dark:border-zinc-800/80">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-[13px] font-mono text-zinc-500 dark:text-zinc-400 tracking-[0.08em]">
-            © {year} Sankalpa Neupane. {t?.contact?.footer_rights ?? (lang === 'fi' ? 'Kaikki oikeudet pidätetään.' : 'All rights reserved.')}
+          {/* ✅ dark footer brighter */}
+          <p className="text-[13px] font-mono text-zinc-500 dark:text-zinc-300/70 tracking-[0.08em]">
+            © {year} Sankalpa Neupane. {t?.contact?.footer_rights ?? ''}
           </p>
           <div className="flex items-center gap-5">
             <a
               href="https://www.linkedin.com/in/sankalpaneupane7/"
               target="_blank"
               rel="noreferrer"
-              className="text-[13px] font-mono text-zinc-500 dark:text-zinc-400 hover:text-[#00E5FF] transition-colors tracking-[0.08em]"
+              className="text-[13px] font-mono text-zinc-500 dark:text-zinc-300/70 hover:text-[#00E5FF] transition-colors tracking-[0.08em]"
             >
               LinkedIn
             </a>
-            <span className="text-zinc-300 dark:text-zinc-600">·</span>
+            <span className="text-zinc-300 dark:text-zinc-700">·</span>
             <a
               href="https://github.com/Sankalpa7"
               target="_blank"
               rel="noreferrer"
-              className="text-[13px] font-mono text-zinc-500 dark:text-zinc-400 hover:text-[#00E5FF] transition-colors tracking-[0.08em]"
+              className="text-[13px] font-mono text-zinc-500 dark:text-zinc-300/70 hover:text-[#00E5FF] transition-colors tracking-[0.08em]"
             >
               GitHub
             </a>
-            <span className="text-zinc-300 dark:text-zinc-600">·</span>
+            <span className="text-zinc-300 dark:text-zinc-700">·</span>
             <a
               href="mailto:sankalpaneupane7@gmail.com"
-              className="text-[13px] font-mono text-zinc-500 dark:text-zinc-400 hover:text-[#00E5FF] transition-colors tracking-[0.08em]"
+              className="text-[13px] font-mono text-zinc-500 dark:text-zinc-300/70 hover:text-[#00E5FF] transition-colors tracking-[0.08em]"
             >
               Email
             </a>
           </div>
-          <p className="text-[13px] font-mono text-zinc-500 dark:text-zinc-400 tracking-[0.08em]">{t?.contact?.built_with ?? 'Built with Next.js & Tailwind'}</p>
+
+          {/* ✅ dark footer brighter */}
+          <p className="text-[13px] font-mono text-zinc-500 dark:text-zinc-300/70 tracking-[0.08em]">
+            {t?.contact?.footer_built ?? 'Built with Next.js & Tailwind'}
+          </p>
         </div>
       </div>
     </section>

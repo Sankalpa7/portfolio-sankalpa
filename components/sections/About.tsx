@@ -42,11 +42,7 @@ export default function About() {
   return (
     <section
       id="about"
-      className="
-        pt-32 relative overflow-hidden
-        bg-slate-50
-        dark:bg-[#0a0a0a]
-      "
+      className="pt-32 relative overflow-hidden bg-slate-50 dark:bg-[#0a0a0a]"
     >
       {/* soft background glow */}
       <div className="absolute inset-0 pointer-events-none">
@@ -94,14 +90,7 @@ export default function About() {
             </div>
 
             {/* Currently */}
-            <div
-              className="
-                border border-slate-200 dark:border-zinc-800
-                rounded-2xl p-6
-                bg-white/70 dark:bg-zinc-900/50
-                backdrop-blur
-              "
-            >
+            <div className="border border-slate-200 dark:border-zinc-800 rounded-2xl p-6 bg-white/70 dark:bg-zinc-900/50 backdrop-blur">
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse" />
                 <span className="text-xs font-mono text-cyan-700 dark:text-cyan-400 tracking-widest uppercase">
@@ -121,14 +110,7 @@ export default function About() {
               {stats.map((stat) => (
                 <div
                   key={stat.label}
-                  className="
-                    border border-slate-200 dark:border-zinc-800
-                    rounded-2xl p-6
-                    bg-white/70 dark:bg-zinc-900/30
-                    backdrop-blur
-                    hover:border-cyan-500/50 transition-all duration-300
-                    group
-                  "
+                  className="border border-slate-200 dark:border-zinc-800 rounded-2xl p-6 bg-white/70 dark:bg-zinc-900/30 backdrop-blur hover:border-cyan-500/50 transition-all duration-300 group"
                 >
                   <div
                     className="text-3xl font-bold text-cyan-600 dark:text-cyan-400 mb-1"
@@ -155,11 +137,7 @@ export default function About() {
                 {facts.map((fact) => (
                   <div
                     key={fact.label}
-                    className="
-                      flex items-center gap-4 px-6 py-4
-                      hover:bg-slate-50/70 dark:hover:bg-zinc-900/30
-                      transition-colors group
-                    "
+                    className="flex items-center gap-4 px-6 py-4 hover:bg-slate-50/70 dark:hover:bg-zinc-900/30 transition-colors group"
                   >
                     <span className="text-lg w-8">{fact.icon}</span>
                     <span className="text-xs font-mono text-slate-500 dark:text-zinc-500 w-28 shrink-0">
@@ -184,8 +162,9 @@ export default function About() {
             <span className="text-cyan-500 font-mono text-xs tracking-widest">✦</span>
 
             <div className="flex items-center gap-2 border border-slate-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/80 backdrop-blur rounded-full px-5 py-2">
+              {/* ✅ FIX line 187: comment moved inside braces */}
               <span className="text-cyan-600 dark:text-cyan-400 font-mono text-xs tracking-widest">
-                //
+                {'//'}
               </span>
               <span
                 className="text-slate-900 dark:text-zinc-200 text-sm font-medium tracking-widest uppercase"
@@ -193,8 +172,9 @@ export default function About() {
               >
                 {t.about.beyond_code}
               </span>
+              {/* ✅ FIX line 196: comment moved inside braces */}
               <span className="text-cyan-600 dark:text-cyan-400 font-mono text-xs tracking-widest">
-                //
+                {'//'}
               </span>
             </div>
 

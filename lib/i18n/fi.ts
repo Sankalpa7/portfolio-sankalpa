@@ -103,9 +103,9 @@ const fi = {
     subtitle:
       'Teknologiat, joiden parissa työskentelen — ikonit kiertävät kuin pyörä ja korostettu laatta näyttää aktiivisen taidon.',
     categoryDescriptions: {
-      web: "Rakennan nopeita ja moderneja käyttöliittymiä — React-komponenteista kokonaisiin Next.js-sovelluksiin.",
-      data: "Raakadatan käsittelystä mallien kouluttamiseen — työskentelyä ohjatun oppimisen ja oikean datan parissa.",
-      tools: "Vahva ote IT-ympäristöihin — Azure AD:stä ja Linuxista arjen työkaluihin.",
+      web: 'Rakennan nopeita ja moderneja käyttöliittymiä — React-komponenteista kokonaisiin Next.js-sovelluksiin.',
+      data: 'Raakadatan käsittelystä mallien kouluttamiseen — työskentelyä ohjatun oppimisen ja oikean datan parissa.',
+      tools: 'Vahva ote IT-ympäristöihin — Azure AD:stä ja Linuxista arjen työkaluihin.',
     },
     cats: {
       web: 'Web & Frontend',
@@ -167,11 +167,7 @@ const fi = {
     sla_based_val: 'Helsinki, Suomi',
     ticket_id: 'Tiketti-tunnus',
     activity_title: 'Viimeaikainen toiminta',
-    activity: [
-      'Pro gradu -työ käynnissä',
-      'Etsin aktiivisesti pilvi- / IT-alan töitä',
-      'Portfolio v2 julkaistu',
-    ],
+    activity: ['Pro gradu -työ käynnissä', 'Etsin aktiivisesti pilvi- / IT-alan töitä', 'Portfolio v2 julkaistu'],
     reach: 'Tai tavoita minut',
     form_new: 'Uusi pyyntö',
     form_title: 'Tiketin tiedot',
@@ -186,8 +182,7 @@ const fi = {
     field_subject: 'Miten voin auttaa sinua?',
     field_subject_placeholder: 'esim. Frontend-rooli Acme Corp:ssa',
     field_message: 'Kuvaile pyyntösi',
-    field_message_placeholder:
-      'Mitä enemmän yksityiskohtia, sen parempi — luen jokaisen viestin.',
+    field_message_placeholder: 'Mitä enemmän yksityiskohtia, sen parempi — luen jokaisen viestin.',
     char_limit: 'Enintään 900 merkkiä',
     building: 'luodaan tikettiä',
     attach_toggle: 'Liitä CV / portfolio-linkki',
@@ -195,18 +190,16 @@ const fi = {
     submit_idle: 'LÄHETÄ VIESTI',
     submit_hover: 'LUO TIKETTI',
     submit_loading: 'LUODAAN TIKETTIÄ…',
-    footer_note:
-      'Viestisi menee suoraan minulle — ei botteja, ei autovastaajia.',
+    footer_note: 'Viestisi menee suoraan minulle — ei botteja, ei autovastaajia.',
     success_title: 'Tiketti luotu.',
     success_sub: 'Palaan sinulle pian. Pidä silmällä sähköpostiasi.',
     success_ref: 'Tiketti-viite:',
     success_quote: '"Kiitos yhteydenotostasi. – Sankalpa"',
     send_another: 'Lähetä toinen viesti',
-    error_msg:
-      'Jokin meni pieleen — lähetä sähköpostia suoraan osoitteeseen sankalpaneupane7@gmail.com',
+    error_msg: 'Jokin meni pieleen — lähetä sähköpostia suoraan osoitteeseen sankalpaneupane7@gmail.com',
     footer_rights: 'Kaikki oikeudet pidätetään.',
     footer_built: 'Rakennettu Next.js:llä ja Tailwindillä',
   },
-} as const satisfies Translations
+} satisfies Translations
 
 export default fi

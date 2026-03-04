@@ -1,11 +1,11 @@
 'use client'
 
-import { createContext, useContext, useState, ReactNode, useEffect } from 'react'
+import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import en from './en'
 import fi from './fi'
 import type { Translations } from './en'
 
-type Locale = 'en' | 'fi'
+export type Locale = 'en' | 'fi'
 
 const translations: Record<Locale, Translations> = { en, fi }
 
@@ -21,47 +21,34 @@ const LangContext = createContext<LangContextType>({
   setLocale: () => {},
 })
 
-export function LangProvider({ children }: { children: ReactNode }) {
-  // ✅ Always default to English on server & first render
-  const [locale, setLocale] = useState<Locale>('en')
-  const [mounted, setMounted] = useState(false)
+function getInitialLocale(): Locale {
+  if (typeof window === 'undefined') return 'en'
+  try {
+    const saved = window.localStorage.getItem('lang')
+    return saved === 'fi' || saved === 'en' ? saved : 'en'
+  } catch {
+    return 'en'
+  }
+}
 
-  // ✅ After mount, read saved language
-  useEffect(() => {
-    setMounted(true)
+export function LangProvider({ children }: { children: React.ReactNode }) {
+  const [locale, setLocaleState] = useState<Locale>(() => getInitialLocale())
 
-    const saved = localStorage.getItem('lang')
-    if (saved === 'fi' || saved === 'en') {
-      setLocale(saved)
-    }
-  }, [])
-
-  // ✅ Persist changes
-  const handleSetLocale = (l: Locale) => {
-    setLocale(l)
+  const setLocale = (l: Locale) => {
+    setLocaleState(l)
     try {
-      localStorage.setItem('lang', l)
+      window.localStorage.setItem('lang', l)
     } catch {}
   }
 
-  // ✅ Update <html lang="">
-  useEffect(() => {
-    if (mounted) {
-      document.documentElement.lang = locale
-    }
-  }, [locale, mounted])
+  const t = useMemo(() => translations[locale], [locale])
 
-  return (
-    <LangContext.Provider
-      value={{
-        locale,
-        t: translations[locale],
-        setLocale: handleSetLocale,
-      }}
-    >
-      {children}
-    </LangContext.Provider>
-  )
+  // external system sync is OK (no setState here)
+  useEffect(() => {
+    document.documentElement.lang = locale
+  }, [locale])
+
+  return <LangContext.Provider value={{ locale, t, setLocale }}>{children}</LangContext.Provider>
 }
 
 export function useLang() {

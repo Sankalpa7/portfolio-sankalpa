@@ -54,6 +54,7 @@ function fibonacciSphere(n: number) {
 
 export default function TechSphere() {
   const containerRef = useRef<HTMLDivElement>(null)
+
   const angleX = useRef(0.3)
   const angleY = useRef(0)
   const isDragging = useRef(false)
@@ -62,14 +63,14 @@ export default function TechSphere() {
   const velX = useRef(0)
   const velY = useRef(0)
   const rafRef = useRef<number>(0)
-  const speedRef = useRef(0.5)
+
+  const speedRef = useRef(4)
+  const radiusRef = useRef(140)
 
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
 
-    // ✅ smaller radius to match smaller visual area
-    const R = 135
     const positions = fibonacciSphere(techs.length)
 
     type Item = {
@@ -85,19 +86,20 @@ export default function TechSphere() {
     container.innerHTML = ''
 
     const isDark = () => document.documentElement.classList.contains('dark')
+    const isMobile = () => window.matchMedia('(max-width: 767px)').matches
 
     const getThemeTokens = () => {
       if (isDark()) {
         return {
-          iconBg: 'rgba(255,255,255,0.04)',
-          iconBorder: 'rgba(255,255,255,0.08)',
-          label: 'rgba(255,255,255,0.42)',
+          iconBg: 'rgba(255,255,255,0.05)',
+          iconBorder: 'rgba(255,255,255,0.09)',
+          label: 'rgba(255,255,255,0.55)',
         }
       }
       return {
-        iconBg: 'rgba(2,6,23,0.04)',
-        iconBorder: 'rgba(2,6,23,0.10)',
-        label: 'rgba(15,23,42,0.68)',
+        iconBg: 'rgba(2,6,23,0.06)',
+        iconBorder: 'rgba(2,6,23,0.14)',
+        label: 'rgba(15,23,42,0.78)',
       }
     }
 
@@ -106,42 +108,47 @@ export default function TechSphere() {
       item.iconEl.style.background = tok.iconBg
       item.iconEl.style.borderColor = tok.iconBorder
       item.labelEl.style.color = tok.label
+      item.labelEl.style.display = isMobile() ? 'none' : 'block'
     }
 
     techs.forEach((tech, i) => {
       const el = document.createElement('div')
       el.style.cssText = `
-        position: absolute;
-        top: 50%; left: 50%;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 3px;
-        cursor: pointer;
-        user-select: none;
-        transition: filter 0.2s;
+        position:absolute;
+        top:50%;
+        left:50%;
+        display:flex;
+        flex-direction:column;
+        align-items:center;
+        gap:4px;
+        cursor:pointer;
+        user-select:none;
+        transform:translate(-50%,-50%);
+        transition:filter .2s;
         will-change: transform, opacity;
-        transform: translate3d(-50%, -50%, 0);
+        pointer-events:auto;
       `
 
       const iconEl = document.createElement('div')
       iconEl.style.cssText = `
-        width: 36px; height: 36px;
-        border-radius: 8px;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 1.1rem;
-        transition: background 0.2s, border-color 0.2s;
-        border: 1px solid transparent;
-        background: transparent;
+        width:40px;
+        height:40px;
+        border-radius:12px;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        font-size:1.1rem;
+        border:1px solid transparent;
+        transition: background .2s, border-color .2s;
       `
       iconEl.textContent = tech.icon
 
       const labelEl = document.createElement('div')
       labelEl.style.cssText = `
-        font-size: 0.5rem;
-        font-family: 'JetBrains Mono', monospace;
-        white-space: nowrap;
-        transition: color 0.2s;
+        font-size:0.55rem;
+        font-family:var(--font-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        white-space:nowrap;
+        transition: color .2s;
       `
       labelEl.textContent = tech.name
 
@@ -160,9 +167,10 @@ export default function TechSphere() {
       applyThemeToItem(item)
 
       el.addEventListener('mouseenter', () => {
-        el.style.filter = 'drop-shadow(0 0 8px #06b6d4)'
+        if (isMobile()) return
+        el.style.filter = 'drop-shadow(0 0 10px rgba(6,182,212,0.85))'
         iconEl.style.background = 'rgba(6,182,212,0.15)'
-        iconEl.style.borderColor = 'rgba(6,182,212,0.5)'
+        iconEl.style.borderColor = 'rgba(6,182,212,0.55)'
         labelEl.style.color = '#06b6d4'
       })
 
@@ -174,6 +182,21 @@ export default function TechSphere() {
       container.appendChild(el)
       items.push(item)
     })
+
+    const resize = () => {
+      const rect = container.getBoundingClientRect()
+      const minSide = Math.min(rect.width, rect.height)
+
+      // ✅ This ensures icons never touch container edge even on big screens.
+      const padding = isMobile() ? 28 : 56
+      radiusRef.current = Math.max(95, minSide / 2 - padding)
+
+      items.forEach(applyThemeToItem)
+    }
+
+    resize()
+    const ro = new ResizeObserver(resize)
+    ro.observe(container)
 
     function rotateX(p: { x: number; y: number; z: number }, a: number) {
       const c = Math.cos(a)
@@ -187,26 +210,28 @@ export default function TechSphere() {
     }
 
     function render() {
+      const R = radiusRef.current
       for (const item of items) {
         let p = { x: item.ox, y: item.oy, z: item.oz }
         p = rotateX(p, angleX.current)
         p = rotateY(p, angleY.current)
 
-        const scale = (p.z + 1.6) / 2.6
+        const depth = (p.z + 1.6) / 2.6
         const x = p.x * R
         const y = p.y * R
 
-        const s = 0.62 + scale * 0.58
-        item.el.style.transform = `translate3d(${x}px, ${y}px, 0) translate3d(-50%, -50%, 0) scale(${s})`
-        item.el.style.opacity = String(0.28 + scale * 0.72)
+        const s = 0.64 + depth * 0.58
+        item.el.style.transform = `translate(${x}px,${y}px) translate(-50%,-50%) scale(${s})`
+        item.el.style.opacity = String(0.32 + depth * 0.68)
         item.el.style.zIndex = String(Math.floor((p.z + 2) * 1000))
       }
     }
 
     function animate() {
       if (!isDragging.current) {
-        angleY.current += speedRef.current * 0.0045
-        angleX.current += speedRef.current * 0.0018
+        const speed = speedRef.current
+        angleY.current += speed * 0.0045
+        angleX.current += speed * 0.0018
         velX.current *= 0.94
         velY.current *= 0.94
         angleX.current += velX.current * 0.007
@@ -218,15 +243,15 @@ export default function TechSphere() {
 
     animate()
 
-    const onMouseDown = (e: MouseEvent) => {
+    const onPointerDown = (e: PointerEvent) => {
       isDragging.current = true
       lastX.current = e.clientX
       lastY.current = e.clientY
       velX.current = 0
       velY.current = 0
+      container.setPointerCapture(e.pointerId)
     }
-
-    const onMouseMove = (e: MouseEvent) => {
+    const onPointerMove = (e: PointerEvent) => {
       if (!isDragging.current) return
       const dx = e.clientX - lastX.current
       const dy = e.clientY - lastY.current
@@ -237,76 +262,104 @@ export default function TechSphere() {
       lastX.current = e.clientX
       lastY.current = e.clientY
     }
-
-    const onMouseUp = () => {
+    const onPointerUp = (e: PointerEvent) => {
       isDragging.current = false
+      try {
+        container.releasePointerCapture(e.pointerId)
+      } catch {}
     }
 
-    container.addEventListener('mousedown', onMouseDown)
-    window.addEventListener('mousemove', onMouseMove)
-    window.addEventListener('mouseup', onMouseUp)
+    container.addEventListener('pointerdown', onPointerDown)
+    container.addEventListener('pointermove', onPointerMove)
+    container.addEventListener('pointerup', onPointerUp)
+    container.addEventListener('pointercancel', onPointerUp)
 
-    const observer = new MutationObserver(() => {
-      items.forEach((it) => applyThemeToItem(it))
-    })
+    const observer = new MutationObserver(() => items.forEach(applyThemeToItem))
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+
+    const mq = window.matchMedia('(max-width: 767px)')
+    const onMq = () => resize()
+    mq.addEventListener?.('change', onMq)
 
     return () => {
       cancelAnimationFrame(rafRef.current)
       observer.disconnect()
-      container.removeEventListener('mousedown', onMouseDown)
-      window.removeEventListener('mousemove', onMouseMove)
-      window.removeEventListener('mouseup', onMouseUp)
+      ro.disconnect()
+      mq.removeEventListener?.('change', onMq)
+      container.removeEventListener('pointerdown', onPointerDown)
+      container.removeEventListener('pointermove', onPointerMove)
+      container.removeEventListener('pointerup', onPointerUp)
+      container.removeEventListener('pointercancel', onPointerUp)
     }
   }, [])
 
   return (
-    <div className="flex flex-col items-center gap-3 w-[420px]">
-      {/* ✅ smaller sphere area so legend never gets clipped */}
-      <div className="relative flex items-center justify-center w-[360px] h-[360px]">
-        <div className="absolute w-36 h-36 bg-cyan-500/10 dark:bg-cyan-500/15 rounded-full blur-3xl animate-pulse pointer-events-none" />
-        <div
-          ref={containerRef}
-          className="relative w-full h-full cursor-grab active:cursor-grabbing"
-          style={{ userSelect: 'none' }}
-        />
-      </div>
+    <div className="w-full flex flex-col items-center">
+      {/* ✅ Outer wrapper NEVER clips */}
+      <div className="relative w-full max-w-[620px]">
+        {/* ✅ Light mode “panel” is only a background layer (does NOT clip anything) */}
+        <div className="absolute inset-0 dark:hidden pointer-events-none">
+          <div className="absolute inset-0 rounded-[34px] bg-white/80 backdrop-blur-lg shadow-[0_30px_120px_rgba(2,6,23,0.12)]" />
+          <div className="absolute -top-16 -left-16 w-72 h-72 bg-cyan-400/10 rounded-full blur-3xl" />
+          <div className="absolute -bottom-16 -right-16 w-72 h-72 bg-violet-400/10 rounded-full blur-3xl" />
+        </div>
 
-      <p className="text-slate-600 dark:text-zinc-400 text-[11px] font-mono tracking-wide">
-        // <span className="text-cyan-600 dark:text-cyan-400">drag</span> to rotate ·{' '}
-        <span className="text-cyan-600 dark:text-cyan-400">hover</span> to explore
-      </p>
+        {/* ✅ Content padding only in light, not in dark */}
+        <div className="relative px-6 py-7 dark:px-0 dark:py-0">
+          {/* ✅ Sphere area: never overflow hidden in dark, and also not in light anymore */}
+          <div className="relative w-full aspect-square">
+            {/* Dark glow */}
+            <div className="absolute inset-0 pointer-events-none hidden dark:block">
+              <div className="absolute w-44 h-44 bg-cyan-500/15 rounded-full blur-3xl animate-pulse left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" />
+            </div>
 
-      <div className="flex items-center gap-2">
-        <span className="text-slate-600 dark:text-zinc-300 text-[11px] font-mono">slow</span>
-        <input
-          type="range"
-          min="0"
-          max="10"
-          defaultValue="4"
-          onChange={(e) => {
-            speedRef.current = parseFloat(e.target.value)
-          }}
-          className="w-24 h-1 accent-cyan-500 cursor-pointer"
-        />
-        <span className="text-slate-600 dark:text-zinc-300 text-[11px] font-mono">fast</span>
-      </div>
-
-      <div className="flex flex-wrap justify-center gap-x-5 gap-y-1 max-w-xs pt-1">
-        {legend.map((item) => (
-          <div
-            key={item.label}
-            className="flex items-center gap-2 transition-opacity duration-200 hover:opacity-80"
-          >
-            <div
-              className="w-2.5 h-2.5 rounded-full ring-1 ring-black/10 dark:ring-white/10"
-              style={{ background: item.color }}
-            />
-            <span className="text-slate-700 dark:text-zinc-300 text-[11px] font-mono tracking-wide">
-              {item.label}
-            </span>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div
+                ref={containerRef}
+                className="relative w-full h-full cursor-grab active:cursor-grabbing"
+                style={{ userSelect: 'none', touchAction: 'none' }}
+              />
+            </div>
           </div>
-        ))}
+
+          {/* ✅ Desktop-only extras (never on mobile) */}
+          <div className="hidden md:flex flex-col items-center gap-3 mt-6">
+            <p className="text-slate-600 dark:text-zinc-400 text-[11px] font-mono tracking-wide text-center">
+              {'// '}
+              <span className="text-cyan-600 dark:text-cyan-400">drag</span>
+              {' to rotate · '}
+              <span className="text-cyan-600 dark:text-cyan-400">hover</span>
+              {' to explore'}
+            </p>
+
+            {/* ✅ Slider size back to the small old version */}
+            <div className="flex items-center gap-2">
+              <span className="text-slate-600 dark:text-zinc-300 text-[11px] font-mono">slow</span>
+              <input
+                type="range"
+                min="0"
+                max="10"
+                defaultValue="4"
+                onChange={(e) => {
+                  ;(speedRef.current = parseFloat(e.target.value))
+                }}
+                className="w-24 h-1 accent-cyan-500 cursor-pointer"
+              />
+              <span className="text-slate-600 dark:text-zinc-300 text-[11px] font-mono">fast</span>
+            </div>
+
+            {/* ✅ Legend always fully visible */}
+            <div className="flex flex-wrap justify-center gap-x-5 gap-y-1 max-w-xs pt-1">
+              {legend.map((item) => (
+                <div key={item.label} className="flex items-center gap-2 transition-opacity duration-200 hover:opacity-80">
+                  <div className="w-2.5 h-2.5 rounded-full ring-1 ring-black/10 dark:ring-white/10" style={{ background: item.color }} />
+                  <span className="text-slate-700 dark:text-zinc-300 text-[11px] font-mono tracking-wide">{item.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          {/* end desktop extras */}
+        </div>
       </div>
     </div>
   )

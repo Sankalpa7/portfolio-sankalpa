@@ -1,46 +1,49 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import dynamic from 'next/dynamic'
 import { AnimatePresence, motion } from 'framer-motion'
-import IntroLoader from '@/components/IntroLoader'
+
+const IntroLoader = dynamic(() => import('@/components/IntroLoader'), {
+  ssr: false, // ✅ no SSR for canvas/random
+})
 
 type AppShellProps = {
-  accentColor: string // pass "var(--accent)" from layout
+  accentColor: string
   children: React.ReactNode
 }
 
 export default function AppShell({ accentColor, children }: AppShellProps) {
   const [ready, setReady] = useState(false)
   const [showIntro, setShowIntro] = useState(false)
+  const [decided, setDecided] = useState(false)
 
   useEffect(() => {
-    // show loader only once per session
-    const seen = sessionStorage.getItem('intro_seen')
-    if (seen === '1') {
-      setShowIntro(false)
-      setReady(true)
-      return
+    // decide only on client
+    try {
+      const seen = sessionStorage.getItem('intro_seen')
+      const shouldShow = seen !== '1'
+      setShowIntro(shouldShow)
+      setReady(!shouldShow)
+    } catch {
+      setShowIntro(true)
+      setReady(false)
+    } finally {
+      setDecided(true)
     }
-    setShowIntro(true)
   }, [])
 
-  const finish = () => {
+  const finish = useCallback(() => {
     try {
       sessionStorage.setItem('intro_seen', '1')
     } catch {}
     setShowIntro(false)
     setReady(true)
-  }
+  }, [])
 
   return (
     <>
-      <AnimatePresence mode="wait">
-        {showIntro && (
-          <IntroLoader key="intro" accentColor={accentColor} onDone={finish} />
-        )}
-      </AnimatePresence>
-
-      {/* Content reveal (avoids sudden pop) */}
+      {/* ✅ your site (hidden + non-clickable while intro is up) */}
       <motion.div
         initial={false}
         animate={{ opacity: ready ? 1 : 0 }}
@@ -49,6 +52,13 @@ export default function AppShell({ accentColor, children }: AppShellProps) {
       >
         {children}
       </motion.div>
+
+      {/* ✅ loader overlay ALWAYS on top */}
+      <AnimatePresence mode="wait">
+        {decided && showIntro ? (
+          <IntroLoader key="intro" accentColor={accentColor} onDone={finish} />
+        ) : null}
+      </AnimatePresence>
     </>
   )
 }
