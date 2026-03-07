@@ -1,21 +1,21 @@
-'use client'
+"use client";
 
-import dynamic from 'next/dynamic'
-import { Button } from '@/components/ui/button'
-import { ArrowRight, Download, Github, Linkedin, Mail } from 'lucide-react'
-import { useLang } from '@/lib/i18n/LangContext'
+import dynamic from "next/dynamic";
+import { Button } from "@/components/ui/button";
+import { ArrowRight, Download, Github, Linkedin, Mail } from "lucide-react";
+import { useLang } from "@/lib/i18n/LangContext";
 
-const TechSphere = dynamic(() => import('@/components/three/TechSphere'), {
+const TechSphere = dynamic(() => import("@/components/three/TechSphere"), {
   ssr: false,
   loading: () => (
     <div className="w-full h-full flex items-center justify-center">
       <div className="w-24 h-24 rounded-full border border-slate-200/70 dark:border-white/10 animate-pulse" />
     </div>
   ),
-})
+});
 
 export default function Hero() {
-  const { t } = useLang()
+  const { t } = useLang();
 
   return (
     <section
@@ -32,7 +32,6 @@ export default function Hero() {
         <div className="absolute -bottom-28 right-1/5 w-[460px] h-[460px] bg-sky-400/10 dark:bg-sky-400/6 rounded-full blur-3xl" />
       </div>
 
-      {/* FIXED MOBILE SPACING */}
       <div className="w-full relative z-10 pt-28 md:pt-16">
         <div
           className="
@@ -44,7 +43,7 @@ export default function Hero() {
           "
         >
           {/* LEFT CONTENT */}
-          <div className="flex flex-col items-start py-10">
+          <div className="flex flex-col items-start py-8 sm:py-10">
             <div className="flex items-center gap-3 mb-8">
               <div className="flex items-center gap-1.5">
                 <div className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse" />
@@ -69,7 +68,7 @@ export default function Hero() {
             {/* NAME */}
             <h1
               className="text-5xl sm:text-6xl md:text-7xl font-bold leading-none mb-4"
-              style={{ fontFamily: 'var(--font-syne)' }}
+              style={{ fontFamily: "var(--font-syne)" }}
             >
               <span className="text-slate-900 dark:text-white block">
                 {t.hero.firstName}
@@ -82,25 +81,31 @@ export default function Hero() {
 
             {/* TAGLINE */}
             <p
-              className="text-sm sm:text-base font-medium text-cyan-700 dark:text-cyan-400 mb-6 tracking-widest uppercase"
-              style={{ fontFamily: 'var(--font-mono)' }}
+              className="text-xs sm:text-sm font-medium text-cyan-700 dark:text-cyan-400 mb-4 sm:mb-6 tracking-[0.18em] uppercase"
+              style={{ fontFamily: "var(--font-mono)" }}
             >
               {t.hero.tagline}
             </p>
 
             {/* BIO */}
             <p
-              className="text-sm leading-7 mb-10 max-w-lg text-slate-600 dark:text-zinc-400"
-              style={{ fontFamily: 'var(--font-mono)' }}
+              className="
+                text-[13px] sm:text-sm
+                leading-6 sm:leading-7
+                mb-8 sm:mb-10
+                max-w-full sm:max-w-lg
+                text-slate-600 dark:text-zinc-400
+                break-words
+              "
+              style={{ fontFamily: "var(--font-mono)" }}
             >
               {t.hero.bio_lines.map((line, i) => (
-                <span key={i}>
+                <span key={i} className="block">
                   {line}
-                  <br />
                 </span>
               ))}
 
-              <span className="text-cyan-700 dark:text-cyan-400 font-medium">
+              <span className="block mt-2 text-cyan-700 dark:text-cyan-400 font-medium">
                 {t.hero.bio_highlight}
               </span>
             </p>
@@ -116,7 +121,7 @@ export default function Hero() {
                     shadow-lg shadow-cyan-500/25
                     transition-all duration-200
                   "
-                  style={{ fontFamily: 'var(--font-mono)' }}
+                  style={{ fontFamily: "var(--font-mono)" }}
                 >
                   <span className="text-[13px] font-semibold tracking-[0.18em] uppercase">
                     {t.hero.cta_projects}
@@ -139,7 +144,7 @@ export default function Hero() {
                     flex items-center gap-2
                     transition-all duration-200
                   "
-                  style={{ fontFamily: 'var(--font-mono)' }}
+                  style={{ fontFamily: "var(--font-mono)" }}
                 >
                   <span className="text-[13px] font-semibold tracking-[0.18em] uppercase">
                     {t.hero.cta_cv}
@@ -154,26 +159,26 @@ export default function Hero() {
             <div className="flex items-center gap-3">
               {[
                 {
-                  href: 'https://github.com/Sankalpa7',
+                  href: "https://github.com/Sankalpa7",
                   icon: <Github className="w-5 h-5" />,
-                  label: 'GitHub',
+                  label: "GitHub",
                 },
                 {
-                  href: 'https://www.linkedin.com/in/sankalpaneupane7/',
+                  href: "https://www.linkedin.com/in/sankalpaneupane7/",
                   icon: <Linkedin className="w-5 h-5" />,
-                  label: 'LinkedIn',
+                  label: "LinkedIn",
                 },
                 {
-                  href: 'mailto:sankalpaneupane7@gmail.com',
+                  href: "mailto:sankalpaneupane7@gmail.com",
                   icon: <Mail className="w-5 h-5" />,
-                  label: 'Email',
+                  label: "Email",
                 },
               ].map((item) => (
                 <a
                   key={item.label}
                   href={item.href}
-                  target={item.href.startsWith('http') ? '_blank' : undefined}
-                  rel={item.href.startsWith('http') ? 'noreferrer' : undefined}
+                  target={item.href.startsWith("http") ? "_blank" : undefined}
+                  rel={item.href.startsWith("http") ? "noreferrer" : undefined}
                   className="
                     w-11 h-11 rounded-full
                     border border-slate-200 dark:border-zinc-800
@@ -231,5 +236,5 @@ export default function Hero() {
         <div className="w-px h-10 bg-gradient-to-b from-slate-400 dark:from-zinc-600 to-transparent animate-pulse" />
       </div>
     </section>
-  )
+  );
 }
