@@ -227,8 +227,8 @@ export default function Hero() {
         </div>
       </div>
 
-      {/* SCROLL INDICATOR */}
-      <div className="absolute bottom-7 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
+      {/* SCROLL INDICATOR - hidden on mobile */}
+      <div className="absolute bottom-7 left-1/2 -translate-x-1/2 hidden sm:flex flex-col items-center gap-2">
         <span className="text-slate-400 dark:text-zinc-600 text-xs font-mono tracking-widest">
           {t.hero.scroll}
         </span>
