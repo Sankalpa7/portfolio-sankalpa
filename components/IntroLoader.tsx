@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 
 type IntroLoaderProps = {
   accentColor: string;
@@ -128,21 +128,13 @@ const FACES = [
   },
 ] as const;
 
-const PHASES = [
-  "scanning modules…",
-  "resolving imports…",
-  "compiling tsx…",
-  "bundling assets…",
-  "tree-shaking…",
-  "hydrating dom…",
-  "stack online ✓",
-] as const;
-const SLOGAN_WORDS = ["Welcome", "to", "Sankalpa’s", "Den"] as const;
+const WELCOME_WORD = "Welcome";
 
 /** Cube geometry */
 const S = 50;
 const FACE_SIZE = 100;
 
+// Static, permanent face placements — the cube is always fully assembled.
 const ASSEMBLED = [
   `translateZ(${S}px)`,
   `rotateY(180deg) translateZ(${S}px)`,
@@ -152,14 +144,12 @@ const ASSEMBLED = [
   `rotateX(-90deg) translateZ(${S}px)`,
 ] as const;
 
-const FLY_FROM = [
-  `translateX(-620px) translateZ(${S}px)`,
-  `translateX(620px) rotateY(180deg) translateZ(${S}px)`,
-  `translateY(-620px) rotateY(-90deg) translateZ(${S}px)`,
-  `translateY(620px) rotateY(90deg) translateZ(${S}px)`,
-  `translateX(620px) translateY(-620px) rotateX(90deg) translateZ(${S}px)`,
-  `translateX(-620px) translateY(620px) rotateX(-90deg) translateZ(${S}px)`,
-] as const;
+/** ---------------- Ring geometry ---------------- */
+const RING_SIZE = 260; // outer box that the circular progress ring occupies
+const RING_STROKE = 6;
+const RING_RADIUS = (RING_SIZE - RING_STROKE) / 2;
+const RING_CIRC = 2 * Math.PI * RING_RADIUS;
+const CUBE_BOX = 220; // perspective box holding the cube (must be <= RING_SIZE)
 
 /** ---------------- Color helpers ---------------- */
 function hexToRgb(hex: string) {
@@ -200,6 +190,67 @@ function rgbaFromAccent(accent: string, alpha: number) {
   return `rgba(${rgb.r},${rgb.g},${rgb.b},${alpha})`;
 }
 
+function rgbToHsl(r: number, g: number, b: number) {
+  r /= 255;
+  g /= 255;
+  b /= 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  let h = 0;
+  let s = 0;
+  const l = (max + min) / 2;
+  const d = max - min;
+  if (d !== 0) {
+    s = d / (1 - Math.abs(2 * l - 1));
+    switch (max) {
+      case r:
+        h = ((g - b) / d) % 6;
+        break;
+      case g:
+        h = (b - r) / d + 2;
+        break;
+      default:
+        h = (r - g) / d + 4;
+    }
+    h *= 60;
+    if (h < 0) h += 360;
+  }
+  return { h, s, l };
+}
+
+function hslToRgb(h: number, s: number, l: number) {
+  const c = (1 - Math.abs(2 * l - 1)) * s;
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  const m = l - c / 2;
+  let r = 0;
+  let g = 0;
+  let b = 0;
+  if (h < 60) [r, g, b] = [c, x, 0];
+  else if (h < 120) [r, g, b] = [x, c, 0];
+  else if (h < 180) [r, g, b] = [0, c, x];
+  else if (h < 240) [r, g, b] = [0, x, c];
+  else if (h < 300) [r, g, b] = [x, 0, c];
+  else [r, g, b] = [c, 0, x];
+  return {
+    r: Math.round((r + m) * 255),
+    g: Math.round((g + m) * 255),
+    b: Math.round((b + m) * 255),
+  };
+}
+
+/** Shifts the accent color's hue by `deg` — used to build a multi-tone ring gradient */
+function shiftHue(accent: string, deg: number) {
+  const rgb = cssColorToRgb(accent) || { r: 34, g: 211, b: 238 };
+  const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+  const nh = (hsl.h + deg + 360) % 360;
+  const out = hslToRgb(
+    nh,
+    Math.min(1, hsl.s + 0.08),
+    Math.min(0.72, hsl.l + 0.04),
+  );
+  return `rgb(${out.r},${out.g},${out.b})`;
+}
+
 /** ---------------- Particle BG (SMOOTHER) ---------------- */
 function ParticleBg({ accentColor }: { accentColor: string }) {
   const ref = useRef<HTMLCanvasElement | null>(null);
@@ -210,7 +261,6 @@ function ParticleBg({ accentColor }: { accentColor: string }) {
     const ctx = c.getContext("2d");
     if (!ctx) return;
 
-    // Respect reduced motion
     const reduceMotion =
       typeof window !== "undefined" &&
       window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -222,7 +272,6 @@ function ParticleBg({ accentColor }: { accentColor: string }) {
     let g2: CanvasGradient | null = null;
 
     const rebuildGradients = () => {
-      // create gradients only when size changes
       g1 = ctx.createRadialGradient(
         w * 0.25,
         h * 0.2,
@@ -254,7 +303,6 @@ function ParticleBg({ accentColor }: { accentColor: string }) {
     });
     ro.observe(c);
 
-    // Reduced particles for performance (was 130)
     const pts = Array.from({ length: 70 }, () => ({
       x: Math.random() * w,
       y: Math.random() * h,
@@ -270,7 +318,6 @@ function ParticleBg({ accentColor }: { accentColor: string }) {
     const draw = (t = 0) => {
       if (reduceMotion) return;
 
-      // 30fps cap for consistent smoothness
       if (t - last < 33) {
         raf = requestAnimationFrame(draw);
         return;
@@ -321,45 +368,64 @@ function ParticleBg({ accentColor }: { accentColor: string }) {
   );
 }
 
-function Shockwave({
+/** Circular progress ring: outer static track + animated gradient arc */
+function ProgressRing({
+  progress,
   accentColor,
-  onDone,
 }: {
+  progress: number;
   accentColor: string;
-  onDone: () => void;
 }) {
+  const offset = RING_CIRC * (1 - Math.min(100, Math.max(0, progress)) / 100);
+  const gradId = "introLoaderRingGradient";
+
   return (
-    <motion.div
-      className="pointer-events-none absolute left-1/2 top-1/2 z-30 h-14 w-14 -translate-x-1/2 -translate-y-1/2 rounded-full"
-      style={{
-        border: `1.5px solid ${accentColor}`,
-        boxShadow: `0 0 16px ${accentColor}`,
-      }}
-      initial={{ opacity: 0.75, scale: 0 }}
-      animate={{ opacity: 0, scale: 8 }}
-      transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-      onAnimationComplete={onDone}
-    />
+    <svg
+      width={RING_SIZE}
+      height={RING_SIZE}
+      viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}
+      className="absolute inset-0"
+      style={{ transform: "rotate(-90deg)" }}
+    >
+      <defs>
+        <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor={shiftHue(accentColor, -25)} />
+          <stop offset="50%" stopColor={accentColor} />
+          <stop offset="100%" stopColor={shiftHue(accentColor, 55)} />
+        </linearGradient>
+      </defs>
+
+      <circle
+        cx={RING_SIZE / 2}
+        cy={RING_SIZE / 2}
+        r={RING_RADIUS}
+        fill="none"
+        stroke="rgba(255,255,255,0.08)"
+        strokeWidth={RING_STROKE}
+      />
+
+      <circle
+        cx={RING_SIZE / 2}
+        cy={RING_SIZE / 2}
+        r={RING_RADIUS}
+        fill="none"
+        stroke={`url(#${gradId})`}
+        strokeWidth={RING_STROKE}
+        strokeLinecap="round"
+        strokeDasharray={RING_CIRC}
+        strokeDashoffset={offset}
+        style={{
+          transition: "stroke-dashoffset 0.18s ease-out",
+          filter: `drop-shadow(0 0 10px ${accentColor}90)`,
+        }}
+      />
+    </svg>
   );
 }
 
 export default function IntroLoader({ accentColor, onDone }: IntroLoaderProps) {
-  const [facesIn, setFacesIn] = useState<boolean[]>(Array(6).fill(false));
-  const [allIn, setAllIn] = useState(false);
-  const [flashAll, setFlashAll] = useState(false);
-  const [rolling, setRolling] = useState(false);
-  const [rolled, setRolled] = useState(false);
-
   const [progress, setProgress] = useState(0);
-  const [phase, setPhase] = useState(0);
-
-  const [shockwaves, setShockwaves] = useState<{ id: number }[]>([]);
-  const shockId = useRef(0);
-
-  const [showSlogan, setShowSlogan] = useState(false);
-  const [sloganWord, setSloganWord] = useState(-1);
-
-  const [loaderOut, setLoaderOut] = useState(false);
+  const [flashAll, setFlashAll] = useState(false);
   const [allowPointer, setAllowPointer] = useState(true);
 
   const cubeRef = useRef<HTMLDivElement | null>(null);
@@ -383,43 +449,33 @@ export default function IntroLoader({ accentColor, onDone }: IntroLoaderProps) {
     rafRef.current = null;
   }, []);
 
+  // Continuous slow tumble on every axis — never stops until we finish.
   const rot = useRef({ x: -18, y: -20, z: 0, vx: 0, vy: 0, vz: 0, t: 0 });
-  const spinStarted = useRef(false);
-
-  const addShock = useCallback(() => {
-    const id = ++shockId.current;
-    setShockwaves((p) => [...p, { id }]);
-  }, []);
-
-  const removeShock = useCallback((id: number) => {
-    setShockwaves((p) => p.filter((s) => s.id !== id));
-  }, []);
 
   const startSpin = useCallback(() => {
     stopRAF();
     const r = rot.current;
 
     const tick = () => {
-      r.t += 0.013;
+      r.t += 0.008;
 
-      const ty = -20 + r.t * 60;
-      const tx = -18 + Math.sin(r.t * 0.7) * 18;
-      const tz = Math.sin(r.t * 0.45) * 7;
+      const ty = r.y + 0.35; // slow continuous yaw, never settles
+      const tx = -18 + Math.sin(r.t * 0.6) * 20;
+      const tz = Math.sin(r.t * 0.4) * 10;
 
-      r.vy += (ty - r.y) * 0.04;
-      r.vy *= 0.82;
+      r.vy += (ty - r.y) * 0.06;
+      r.vy *= 0.86;
       r.y += r.vy;
 
-      r.vx += (tx - r.x) * 0.038;
-      r.vx *= 0.8;
+      r.vx += (tx - r.x) * 0.03;
+      r.vx *= 0.82;
       r.x += r.vx;
 
-      r.vz += (tz - r.z) * 0.03;
-      r.vz *= 0.78;
+      r.vz += (tz - r.z) * 0.025;
+      r.vz *= 0.8;
       r.z += r.vz;
 
       if (cubeRef.current) {
-        // Hint GPU + reduce jank
         cubeRef.current.style.transform = `translateZ(0) rotateX(${r.x}deg) rotateY(${r.y}deg) rotateZ(${r.z}deg)`;
         cubeRef.current.style.willChange = "transform";
       }
@@ -428,38 +484,6 @@ export default function IntroLoader({ accentColor, onDone }: IntroLoaderProps) {
     };
 
     rafRef.current = requestAnimationFrame(tick);
-  }, [stopRAF]);
-
-  const startRoll = useCallback(() => {
-    stopRAF();
-    const r = rot.current;
-
-    const spinX = 720 + Math.floor(Math.random() * 4) * 90;
-    const spinY = 1080 + Math.floor(Math.random() * 4) * 90;
-    const spinZ = 360 + Math.floor(Math.random() * 4) * 90;
-
-    const sx = r.x;
-    const sy = r.y;
-    const sz = r.z;
-
-    const start = performance.now();
-    const DURATION = 1100;
-    const easeOut = (t: number) => 1 - Math.pow(1 - t, 4);
-
-    const roll = () => {
-      const p = Math.min((performance.now() - start) / DURATION, 1);
-      const e = easeOut(p);
-
-      if (cubeRef.current) {
-        cubeRef.current.style.transform = `translateZ(0) rotateX(${sx + spinX * e}deg) rotateY(${sy + spinY * e}deg) rotateZ(${sz + spinZ * e}deg)`;
-        cubeRef.current.style.willChange = "transform";
-      }
-
-      if (p < 1) rafRef.current = requestAnimationFrame(roll);
-      else setRolled(true);
-    };
-
-    rafRef.current = requestAnimationFrame(roll);
   }, [stopRAF]);
 
   const finish = useCallback(() => {
@@ -472,52 +496,16 @@ export default function IntroLoader({ accentColor, onDone }: IntroLoaderProps) {
     onDone();
   }, [onDone, stopRAF, clearAllTimers]);
 
-  // cleanup on unmount
+  // Start spinning immediately — the cube is always fully assembled.
   useEffect(() => {
+    startSpin();
     return () => {
       stopRAF();
       clearAllTimers();
-      spinStarted.current = false;
     };
-  }, [stopRAF, clearAllTimers]);
+  }, [startSpin, stopRAF, clearAllTimers]);
 
-  // faces fly in
-  useEffect(() => {
-    FACES.forEach((_, i) => {
-      setTO(
-        () => {
-          setFacesIn((p) => {
-            const n = [...p];
-            n[i] = true;
-            return n;
-          });
-          addShock();
-
-          if (i === FACES.length - 1) {
-            setTO(() => {
-              setFlashAll(true);
-              addShock();
-              setTO(() => {
-                setFlashAll(false);
-                setAllIn(true);
-              }, 220);
-            }, 420);
-          }
-        },
-        160 + i * 210,
-      );
-    });
-  }, [addShock, setTO]);
-
-  // start spin after assembled
-  useEffect(() => {
-    if (!allIn) return;
-    if (spinStarted.current) return;
-    spinStarted.current = true;
-    startSpin();
-  }, [allIn, startSpin]);
-
-  // progress + roll (LESS re-render spam: 90ms -> 150ms)
+  // Progress ticks up; the moment it hits 100 we finish — no extra sequence after.
   useEffect(() => {
     let p = 0;
     const iv = window.setInterval(() => {
@@ -527,40 +515,26 @@ export default function IntroLoader({ accentColor, onDone }: IntroLoaderProps) {
       const pi = Math.floor(p);
 
       setProgress(pi);
-      setPhase(Math.floor((pi / 100) * (PHASES.length - 1)));
 
       if (p >= 100) {
         window.clearInterval(iv);
-        setTO(() => {
-          setRolling(true);
-          addShock();
-          startRoll();
-        }, 180);
+        setFlashAll(true);
+        setTO(() => finish(), 450);
       }
     }, 150);
 
     return () => window.clearInterval(iv);
-  }, [addShock, setTO, startRoll]);
+  }, [finish, setTO]);
 
-  // after roll: dismantle + slogan
+  // Stop/restart RAF when tab visibility changes
   useEffect(() => {
-    if (!rolled) return;
-    setTO(() => {
-      addShock();
-      setLoaderOut(true);
-      setTO(() => {
-        setShowSlogan(true);
-        setSloganWord(0);
-      }, 380);
-    }, 120);
-  }, [rolled, addShock, setTO]);
-
-  // slogan words then finish
-  useEffect(() => {
-    if (!showSlogan) return;
-    SLOGAN_WORDS.forEach((_, i) => setTO(() => setSloganWord(i), i * 280));
-    setTO(() => finish(), 280 * SLOGAN_WORDS.length + 750);
-  }, [showSlogan, finish, setTO]);
+    const onVis = () => {
+      if (document.hidden) stopRAF();
+      else if (!finishedRef.current) startSpin();
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, [startSpin, stopRAF]);
 
   // Esc skip
   useEffect(() => {
@@ -571,38 +545,18 @@ export default function IntroLoader({ accentColor, onDone }: IntroLoaderProps) {
     return () => window.removeEventListener("keydown", onKey);
   }, [finish]);
 
-  // Stop/restart RAF when tab visibility changes (fixes "sometimes stuck")
-  useEffect(() => {
-    const onVis = () => {
-      if (document.hidden) {
-        stopRAF();
-      } else {
-        if (allIn && !rolling && !rolled) startSpin();
-      }
-    };
-    document.addEventListener("visibilitychange", onVis);
-    return () => document.removeEventListener("visibilitychange", onVis);
-  }, [allIn, rolling, rolled, startSpin, stopRAF]);
-
   const containerGlow = useMemo(
     () => ({
       boxShadow: flashAll
         ? `0 0 42px ${accentColor}`
         : `0 0 24px ${accentColor}55`,
-      // Removed filter brightness to reduce compositing cost
-      // filter: flashAll ? 'brightness(1.25)' : 'none',
     }),
     [flashAll, accentColor],
   );
 
-  const dismantleTransform = (i: number) =>
-    loaderOut && rolling
-      ? `translateX(${i % 2 ? 280 : -280}px) translateY(${i < 2 ? -220 : i < 4 ? 220 : 0}px) ${ASSEMBLED[i]}`
-      : ASSEMBLED[i];
-
   return (
     <motion.div
-      className="fixed inset-0 z-[9999] overflow-hidden"
+      className="fixed inset-0 z-[10050] overflow-hidden"
       style={{
         background: "#03010a",
         pointerEvents: allowPointer ? "auto" : "none",
@@ -627,44 +581,40 @@ export default function IntroLoader({ accentColor, onDone }: IntroLoaderProps) {
         Skip (Esc)
       </button>
 
-      <div className="absolute inset-0">
-        <AnimatePresence>
-          {shockwaves.map((s) => (
-            <Shockwave
-              key={s.id}
-              accentColor={accentColor}
-              onDone={() => removeShock(s.id)}
-            />
-          ))}
-        </AnimatePresence>
-      </div>
-
       <div className="absolute inset-0 grid place-items-center">
         <div className="relative flex flex-col items-center">
+          {/* Ring + cube, concentric */}
           <div
             className="relative"
-            style={{ width: 220, height: 220, perspective: 700 }}
+            style={{ width: RING_SIZE, height: RING_SIZE }}
           >
+            <ProgressRing progress={progress} accentColor={accentColor} />
+
             <div
               className="absolute left-1/2 top-1/2"
               style={{
-                width: FACE_SIZE,
-                height: FACE_SIZE,
+                width: CUBE_BOX,
+                height: CUBE_BOX,
                 transform: "translate(-50%, -50%)",
-                transformStyle: "preserve-3d",
+                perspective: 700,
               }}
             >
               <div
-                ref={cubeRef}
-                className="absolute inset-0"
-                style={{ transformStyle: "preserve-3d", ...containerGlow }}
+                className="absolute left-1/2 top-1/2"
+                style={{
+                  width: FACE_SIZE,
+                  height: FACE_SIZE,
+                  transform: "translate(-50%, -50%)",
+                  transformStyle: "preserve-3d",
+                }}
               >
-                {FACES.map((face, i) => {
-                  const inNow = facesIn[i];
-                  const dismantle = dismantleTransform(i);
-
-                  return (
-                    <motion.div
+                <div
+                  ref={cubeRef}
+                  className="absolute inset-0"
+                  style={{ transformStyle: "preserve-3d", ...containerGlow }}
+                >
+                  {FACES.map((face, i) => (
+                    <div
                       key={face.label}
                       className="absolute left-1/2 top-1/2 grid place-items-center"
                       style={{
@@ -674,25 +624,8 @@ export default function IntroLoader({ accentColor, onDone }: IntroLoaderProps) {
                         transformStyle: "preserve-3d",
                         border: `1px solid ${accentColor}`,
                         background: "rgba(255,255,255,0.06)",
-                        // PERF: removing heavy blur (major win)
-                        backdropFilter: "none",
                         boxShadow: `0 0 22px ${accentColor}35`,
-                        willChange: "transform, opacity",
-                      }}
-                      initial={{
-                        opacity: 0,
-                        transform: `translate(-50%, -50%) ${FLY_FROM[i]}`,
-                      }}
-                      animate={{
-                        opacity: inNow ? (loaderOut ? 0 : 1) : 0,
-                        transform: inNow
-                          ? `translate(-50%, -50%) ${dismantle}`
-                          : `translate(-50%, -50%) ${FLY_FROM[i]}`,
-                        scale: flashAll ? 1.02 : 1,
-                      }}
-                      transition={{
-                        duration: inNow ? 0.6 : 0.4,
-                        ease: [0.34, 1.4, 0.64, 1],
+                        transform: `translate(-50%, -50%) ${ASSEMBLED[i]}`,
                       }}
                     >
                       <div
@@ -714,93 +647,75 @@ export default function IntroLoader({ accentColor, onDone }: IntroLoaderProps) {
                       <div className="relative z-10">
                         <face.Icon />
                       </div>
-                    </motion.div>
-                  );
-                })}
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="mt-8 w-[320px] max-w-[78vw]">
-            <div className="mb-3 flex items-center justify-between">
-              <div className="text-[11px] font-mono tracking-[0.18em] uppercase text-white/80">
-                {PHASES[phase]}
-              </div>
-              <div className="text-[11px] font-mono tracking-widest text-white/60">
-                {progress}%
-              </div>
-            </div>
-
+          {/* Percentage + Welcome reveal, under the ring */}
+          <div className="mt-6 flex flex-col items-center">
             <div
-              className="relative h-2 w-full overflow-hidden rounded-full"
+              className="font-mono text-4xl font-extrabold tabular-nums tracking-wider"
               style={{
-                background: "rgba(255,255,255,0.08)",
-                border: `1px solid ${accentColor}55`,
-                boxShadow: `0 0 18px ${accentColor}25`,
+                color: "#fff",
+                textShadow: `0 0 20px ${accentColor}70`,
               }}
             >
-              <div
-                className="absolute left-0 top-0 h-full rounded-full"
-                style={{
-                  width: `${progress}%`,
-                  background: `linear-gradient(90deg, ${accentColor}55, ${accentColor})`,
-                }}
-              />
-              <motion.div
-                className="absolute top-0 h-full w-24 -skew-x-12 opacity-40"
-                style={{ background: "rgba(255,255,255,0.35)" }}
-                animate={{ x: ["-30%", "140%"] }}
-                transition={{
-                  duration: 1.15,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-              />
+              {progress}%
+            </div>
+
+            {/* Reveals one letter per tick of the same `progress` value that fills
+                the ring, so the word finishes exactly when the ring hits 100%.
+                Each letter unrolls upward like a blind opening, and is rendered
+                with a translucent glass-gradient fill (no card/background). */}
+            <div className="mt-10 flex gap-1">
+              {WELCOME_WORD.split("").map((ch, i) => {
+                const revealCount = Math.min(
+                  WELCOME_WORD.length,
+                  Math.ceil((progress / 100) * WELCOME_WORD.length),
+                );
+                const shown = i < revealCount;
+                return (
+                  <span
+                    key={i}
+                    style={{
+                      display: "inline-block",
+                      overflow: "hidden",
+                      lineHeight: 1,
+                    }}
+                  >
+                    <motion.span
+                      initial={false}
+                      animate={{
+                        y: shown ? "0%" : "110%",
+                        opacity: shown ? 1 : 0,
+                      }}
+                      transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+                      style={{
+                        display: "inline-block",
+                        fontFamily: "var(--font-syne)",
+                        fontSize: "clamp(2.25rem, 6vw, 3.75rem)",
+                        fontWeight: 800,
+                        lineHeight: 1,
+                        backgroundImage: `linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.55) 35%, ${accentColor}aa 70%, ${accentColor}66 100%)`,
+                        WebkitBackgroundClip: "text",
+                        backgroundClip: "text",
+                        color: "transparent",
+                        WebkitTextFillColor: "transparent",
+                        filter: `drop-shadow(0 2px 6px rgba(0,0,0,0.45)) drop-shadow(0 0 18px ${accentColor}80)`,
+                      }}
+                    >
+                      {ch}
+                    </motion.span>
+                  </span>
+                );
+              })}
             </div>
           </div>
         </div>
       </div>
-
-      <AnimatePresence>
-        {showSlogan && (
-          <motion.div
-            className="absolute inset-0 z-40 grid place-items-center"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.35, ease: "easeOut" }}
-          >
-            <div className="text-center">
-              <div
-                className="text-[44px] md:text-[64px] font-bold leading-tight text-white"
-                style={{
-                  fontFamily: "var(--font-syne)",
-                  textShadow: `0 0 34px ${accentColor}55`,
-                }}
-              >
-                {SLOGAN_WORDS.map((w, i) => (
-                  <motion.span
-                    key={w}
-                    className="inline-block mr-3"
-                    initial={{ y: 14, opacity: 0 }}
-                    animate={{
-                      y: i <= sloganWord ? 0 : 14,
-                      opacity: i <= sloganWord ? 1 : 0,
-                    }}
-                    transition={{ duration: 0.35, ease: "easeOut" }}
-                  >
-                    {w}
-                  </motion.span>
-                ))}
-              </div>
-
-              <div className="mt-4 text-xs font-mono tracking-[0.22em] uppercase text-white/70">
-                stack online ✓
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </motion.div>
   );
 }
