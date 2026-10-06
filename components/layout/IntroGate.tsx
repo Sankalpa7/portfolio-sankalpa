@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence } from "framer-motion";
-import IntroLoader from "@/components/ui/introloader";
+import IntroLoader from "@/components/ui/IntroLoader";
 
 /**
  * How often the intro plays:
