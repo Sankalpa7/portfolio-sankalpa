@@ -9,7 +9,7 @@ import IntroLoader from "@/components/ui/IntroLoader";
  *  - 0                   -> on every page load (development)
  *  - 24 * 60 * 60 * 1000 -> at most once per day per browser (production)
  */
-const REPLAY_AFTER_MS = 0;
+const REPLAY_AFTER_MS = 24 * 60 * 60 * 1000;
 
 const STORAGE_KEY = "introLastSeen";
 
