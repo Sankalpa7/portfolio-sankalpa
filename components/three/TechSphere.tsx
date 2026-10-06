@@ -1,37 +1,21 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import {
+  useEffect,
+  useRef,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
+import { useReducedMotion } from "framer-motion";
 
-const techs = [
-  { name: "React", icon: "⚛️" },
-  { name: "Next.js", icon: "▲" },
-  { name: "TypeScript", icon: "TS" },
-  { name: "JavaScript", icon: "JS" },
-  { name: "HTML5", icon: "🌐" },
-  { name: "CSS3", icon: "🎨" },
-  { name: "Node.js", icon: "🟢" },
-  { name: "Express", icon: "🚂" },
-  { name: "Django", icon: "🎸" },
-  { name: "Python", icon: "🐍" },
-  { name: "Java", icon: "☕" },
-  { name: "MongoDB", icon: "🍃" },
-  { name: "Firebase", icon: "🔥" },
-  { name: "MySQL", icon: "🐬" },
-  { name: "OpenAI", icon: "🤖" },
-  { name: "Claude AI", icon: "🧠" },
-  { name: "LangChain", icon: "🔗" },
-  { name: "HuggingFace", icon: "🤗" },
-  { name: "TensorFlow", icon: "🧩" },
-  { name: "AWS", icon: "☁️" },
-  { name: "Docker", icon: "🐳" },
-  { name: "Vercel", icon: "▲" },
-  { name: "Git", icon: "🔀" },
-  { name: "REST APIs", icon: "🔌" },
-  { name: "GitHub CI", icon: "⚡" },
-  { name: "C / C++", icon: "⚙️" },
-];
+type Category =
+  | "Frontend"
+  | "Backend"
+  | "AI / ML"
+  | "DevOps"
+  | "Database"
+  | "Language";
 
-const legend = [
+const LEGEND: { label: Category; color: string }[] = [
   { label: "Frontend", color: "#61dafb" },
   { label: "Backend", color: "#68a063" },
   { label: "AI / ML", color: "#a855f7" },
@@ -40,357 +24,231 @@ const legend = [
   { label: "Language", color: "#eab308" },
 ];
 
+const COLOR_OF = Object.fromEntries(
+  LEGEND.map((l) => [l.label, l.color]),
+) as Record<Category, string>;
+
+const TECHS: { name: string; icon: string; category: Category }[] = [
+  { name: "React", icon: "⚛️", category: "Frontend" },
+  { name: "Next.js", icon: "▲", category: "Frontend" },
+  { name: "TypeScript", icon: "TS", category: "Language" },
+  { name: "JavaScript", icon: "JS", category: "Language" },
+  { name: "HTML5", icon: "🌐", category: "Frontend" },
+  { name: "CSS3", icon: "🎨", category: "Frontend" },
+  { name: "Node.js", icon: "🟢", category: "Backend" },
+  { name: "Express", icon: "🚂", category: "Backend" },
+  { name: "Django", icon: "🎸", category: "Backend" },
+  { name: "Python", icon: "🐍", category: "Language" },
+  { name: "Java", icon: "☕", category: "Language" },
+  { name: "MongoDB", icon: "🍃", category: "Database" },
+  { name: "Firebase", icon: "🔥", category: "Database" },
+  { name: "MySQL", icon: "🐬", category: "Database" },
+  { name: "OpenAI", icon: "🤖", category: "AI / ML" },
+  { name: "Claude AI", icon: "🧠", category: "AI / ML" },
+  { name: "LangChain", icon: "🔗", category: "AI / ML" },
+  { name: "HuggingFace", icon: "🤗", category: "AI / ML" },
+  { name: "TensorFlow", icon: "🧩", category: "AI / ML" },
+  { name: "AWS", icon: "☁️", category: "DevOps" },
+  { name: "Docker", icon: "🐳", category: "DevOps" },
+  { name: "Vercel", icon: "▲", category: "DevOps" },
+  { name: "Git", icon: "🔀", category: "DevOps" },
+  { name: "REST APIs", icon: "🔌", category: "Backend" },
+  { name: "GitHub CI", icon: "⚡", category: "DevOps" },
+  { name: "C / C++", icon: "⚙️", category: "Language" },
+];
+
+const R = 135;
+const DEFAULT_SPEED = 0.5; // matches the rotation speed you had before; raise for faster
+
 function fibonacciSphere(n: number) {
-  const pts: { x: number; y: number; z: number }[] = [];
   const golden = Math.PI * (3 - Math.sqrt(5));
-  for (let i = 0; i < n; i++) {
+  return Array.from({ length: n }, (_, i) => {
     const y = 1 - (i / (n - 1)) * 2;
     const r = Math.sqrt(1 - y * y);
     const theta = golden * i;
-    pts.push({ x: Math.cos(theta) * r, y, z: Math.sin(theta) * r });
-  }
-  return pts;
+    return { x: Math.cos(theta) * r, y, z: Math.sin(theta) * r };
+  });
 }
 
+const POINTS = fibonacciSphere(TECHS.length);
+
 export default function TechSphere() {
+  const reduced = useReducedMotion();
+  const reducedRef = useRef(reduced);
   const containerRef = useRef<HTMLDivElement>(null);
+  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  const angleX = useRef(0.3);
-  const angleY = useRef(0);
-  const isDragging = useRef(false);
-  const lastX = useRef(0);
-  const lastY = useRef(0);
-  const velX = useRef(0);
-  const velY = useRef(0);
-  const rafRef = useRef<number>(0);
+  const angle = useRef({ x: 0.3, y: 0 });
+  const vel = useRef({ x: 0, y: 0 });
+  const drag = useRef({ active: false, x: 0, y: 0 });
+  const speed = useRef(DEFAULT_SPEED);
+  const visible = useRef(true);
 
-  const speedRef = useRef(4);
-  const radiusRef = useRef(140);
+  useEffect(() => {
+    reducedRef.current = reduced;
+  });
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    const positions = fibonacciSphere(techs.length);
+    const render = () => {
+      const cx = Math.cos(angle.current.x);
+      const sx = Math.sin(angle.current.x);
+      const cy = Math.cos(angle.current.y);
+      const sy = Math.sin(angle.current.y);
 
-    type Item = {
-      el: HTMLDivElement;
-      iconEl: HTMLDivElement;
-      labelEl: HTMLDivElement;
-      ox: number;
-      oy: number;
-      oz: number;
-    };
+      POINTS.forEach((p, i) => {
+        const el = itemRefs.current[i];
+        if (!el) return;
 
-    const items: Item[] = [];
-    container.innerHTML = "";
+        // rotate around X, then around Y
+        const y1 = p.y * cx - p.z * sx;
+        const z1 = p.y * sx + p.z * cx;
+        const x2 = p.x * cy + z1 * sy;
+        const z2 = -p.x * sy + z1 * cy;
 
-    const isDark = () => document.documentElement.classList.contains("dark");
-    const isMobile = () => window.matchMedia("(max-width: 767px)").matches;
-
-    const getThemeTokens = () => {
-      if (isDark()) {
-        return {
-          iconBg: "rgba(255,255,255,0.05)",
-          iconBorder: "rgba(255,255,255,0.09)",
-          label: "rgba(255,255,255,0.55)",
-        };
-      }
-      return {
-        iconBg: "rgba(2,6,23,0.06)",
-        iconBorder: "rgba(2,6,23,0.14)",
-        label: "rgba(15,23,42,0.78)",
-      };
-    };
-
-    const applyThemeToItem = (item: Item) => {
-      const tok = getThemeTokens();
-      item.iconEl.style.background = tok.iconBg;
-      item.iconEl.style.borderColor = tok.iconBorder;
-      item.labelEl.style.color = tok.label;
-      item.labelEl.style.display = isMobile() ? "none" : "block";
-    };
-
-    techs.forEach((tech, i) => {
-      const el = document.createElement("div");
-      el.style.cssText = `
-        position:absolute;
-        top:50%;
-        left:50%;
-        display:flex;
-        flex-direction:column;
-        align-items:center;
-        gap:4px;
-        cursor:pointer;
-        user-select:none;
-        transform:translate(-50%,-50%);
-        transition:filter .2s;
-        will-change: transform, opacity;
-        pointer-events:auto;
-      `;
-
-      const iconEl = document.createElement("div");
-      iconEl.style.cssText = `
-        width:40px;
-        height:40px;
-        border-radius:12px;
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        font-size:1.1rem;
-        border:1px solid transparent;
-        transition: background .2s, border-color .2s;
-      `;
-      iconEl.textContent = tech.icon;
-
-      const labelEl = document.createElement("div");
-      labelEl.style.cssText = `
-        font-size:0.55rem;
-        font-family:var(--font-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-        white-space:nowrap;
-        transition: color .2s;
-      `;
-      labelEl.textContent = tech.name;
-
-      el.appendChild(iconEl);
-      el.appendChild(labelEl);
-
-      const item: Item = {
-        el,
-        iconEl,
-        labelEl,
-        ox: positions[i].x,
-        oy: positions[i].y,
-        oz: positions[i].z,
-      };
-
-      applyThemeToItem(item);
-
-      el.addEventListener("mouseenter", () => {
-        if (isMobile()) return;
-        el.style.filter = "drop-shadow(0 0 10px rgba(6,182,212,0.85))";
-        iconEl.style.background = "rgba(6,182,212,0.15)";
-        iconEl.style.borderColor = "rgba(6,182,212,0.55)";
-        labelEl.style.color = "#06b6d4";
+        const depth = (z2 + 1.6) / 2.6;
+        const s = 0.62 + depth * 0.58;
+        el.style.transform = `translate3d(${x2 * R}px, ${y1 * R}px, 0) translate3d(-50%, -50%, 0) scale(${s})`;
+        el.style.opacity = String(0.28 + depth * 0.72);
+        el.style.zIndex = String(Math.floor((z2 + 2) * 1000));
       });
-
-      el.addEventListener("mouseleave", () => {
-        el.style.filter = "none";
-        applyThemeToItem(item);
-      });
-
-      container.appendChild(el);
-      items.push(item);
-    });
-
-    const resize = () => {
-      const rect = container.getBoundingClientRect();
-      const minSide = Math.min(rect.width, rect.height);
-
-      const padding = isMobile() ? 28 : 56;
-      radiusRef.current = Math.max(95, minSide / 2 - padding);
-
-      items.forEach(applyThemeToItem);
     };
 
-    resize();
-    const ro = new ResizeObserver(resize);
-    ro.observe(container);
-
-    function rotateX(p: { x: number; y: number; z: number }, a: number) {
-      const c = Math.cos(a);
-      const s = Math.sin(a);
-      return { x: p.x, y: p.y * c - p.z * s, z: p.y * s + p.z * c };
-    }
-    function rotateY(p: { x: number; y: number; z: number }, a: number) {
-      const c = Math.cos(a);
-      const s = Math.sin(a);
-      return { x: p.x * c + p.z * s, y: p.y, z: -p.x * s + p.z * c };
-    }
-
-    function render() {
-      const R = radiusRef.current;
-      for (const item of items) {
-        let p = { x: item.ox, y: item.oy, z: item.oz };
-        p = rotateX(p, angleX.current);
-        p = rotateY(p, angleY.current);
-
-        const depth = (p.z + 1.6) / 2.6;
-        const x = p.x * R;
-        const y = p.y * R;
-
-        const s = 0.64 + depth * 0.58;
-        item.el.style.transform = `translate(${x}px,${y}px) translate(-50%,-50%) scale(${s})`;
-        item.el.style.opacity = String(0.32 + depth * 0.68);
-        item.el.style.zIndex = String(Math.floor((p.z + 2) * 1000));
+    let raf = 0;
+    const tick = () => {
+      if (visible.current) {
+        if (!drag.current.active) {
+          const auto = reducedRef.current ? 0 : speed.current;
+          angle.current.y += auto * 0.0045 + vel.current.y * 0.007;
+          angle.current.x += auto * 0.0018 + vel.current.x * 0.007;
+          vel.current.x *= 0.94;
+          vel.current.y *= 0.94;
+        }
+        render();
       }
-    }
-
-    function animate() {
-      if (!isDragging.current) {
-        const speed = speedRef.current;
-        angleY.current += speed * 0.0045;
-        angleX.current += speed * 0.0018;
-        velX.current *= 0.94;
-        velY.current *= 0.94;
-        angleX.current += velX.current * 0.007;
-        angleY.current += velY.current * 0.007;
-      }
-      render();
-      rafRef.current = requestAnimationFrame(animate);
-    }
-
-    animate();
-
-    const onPointerDown = (e: PointerEvent) => {
-      isDragging.current = true;
-      lastX.current = e.clientX;
-      lastY.current = e.clientY;
-      velX.current = 0;
-      velY.current = 0;
-      container.setPointerCapture(e.pointerId);
-    };
-    const onPointerMove = (e: PointerEvent) => {
-      if (!isDragging.current) return;
-      const dx = e.clientX - lastX.current;
-      const dy = e.clientY - lastY.current;
-      velX.current = dy * 0.25;
-      velY.current = dx * 0.25;
-      angleX.current += dy * 0.004;
-      angleY.current += dx * 0.004;
-      lastX.current = e.clientX;
-      lastY.current = e.clientY;
-    };
-    const onPointerUp = (e: PointerEvent) => {
-      isDragging.current = false;
-      try {
-        container.releasePointerCapture(e.pointerId);
-      } catch {}
+      raf = requestAnimationFrame(tick);
     };
 
-    container.addEventListener("pointerdown", onPointerDown);
-    container.addEventListener("pointermove", onPointerMove);
-    container.addEventListener("pointerup", onPointerUp);
-    container.addEventListener("pointercancel", onPointerUp);
+    render();
+    raf = requestAnimationFrame(tick);
 
-    const observer = new MutationObserver(() =>
-      items.forEach(applyThemeToItem),
-    );
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["class"],
+    // Skip work while the sphere is scrolled out of view
+    const observer = new IntersectionObserver(([entry]) => {
+      visible.current = entry.isIntersecting;
     });
-
-    const mq = window.matchMedia("(max-width: 767px)");
-    const onMq = () => resize();
-    mq.addEventListener?.("change", onMq);
+    observer.observe(container);
 
     return () => {
-      cancelAnimationFrame(rafRef.current);
+      cancelAnimationFrame(raf);
       observer.disconnect();
-      ro.disconnect();
-      mq.removeEventListener?.("change", onMq);
-      container.removeEventListener("pointerdown", onPointerDown);
-      container.removeEventListener("pointermove", onPointerMove);
-      container.removeEventListener("pointerup", onPointerUp);
-      container.removeEventListener("pointercancel", onPointerUp);
     };
   }, []);
 
+  const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+    e.currentTarget.setPointerCapture(e.pointerId);
+    drag.current = { active: true, x: e.clientX, y: e.clientY };
+    vel.current = { x: 0, y: 0 };
+  };
+
+  const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (!drag.current.active) return;
+    const dx = e.clientX - drag.current.x;
+    const dy = e.clientY - drag.current.y;
+    vel.current = { x: dy * 0.25, y: dx * 0.25 };
+    angle.current.x += dy * 0.004;
+    angle.current.y += dx * 0.004;
+    drag.current.x = e.clientX;
+    drag.current.y = e.clientY;
+  };
+
+  const endDrag = () => {
+    drag.current.active = false;
+  };
+
   return (
-    <div className="w-full flex flex-col items-center">
-      <div className="relative w-full max-w-[620px]">
-        <div className="absolute inset-0 dark:hidden pointer-events-none">
-          <div className="absolute inset-0 rounded-[34px] bg-white/80 backdrop-blur-lg shadow-[0_30px_120px_rgba(2,6,23,0.12)]" />
-          <div className="absolute -top-16 -left-16 w-72 h-72 bg-cyan-400/10 rounded-full blur-3xl" />
-          <div className="absolute -bottom-16 -right-16 w-72 h-72 bg-violet-400/10 rounded-full blur-3xl" />
-        </div>
+    <div className="flex w-[420px] flex-col items-center gap-3">
+      <div className="relative flex h-[360px] w-[360px] items-center justify-center">
+        <div
+          className="pointer-events-none absolute h-36 w-36 animate-pulse rounded-full bg-cyan-500/10 blur-3xl dark:bg-cyan-500/15"
+          aria-hidden="true"
+        />
 
-        <div className="relative px-6 py-7 dark:px-0 dark:py-0">
-          <div className="relative w-full aspect-square">
-            <div className="absolute inset-0 pointer-events-none hidden dark:block">
-              <div className="absolute w-44 h-44 bg-cyan-500/15 rounded-full blur-3xl animate-pulse left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" />
+        {/* touch-pan-y: vertical swipes still scroll the page on touch devices */}
+        <div
+          ref={containerRef}
+          aria-hidden="true"
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={endDrag}
+          onPointerCancel={endDrag}
+          className="relative h-full w-full cursor-grab touch-pan-y select-none active:cursor-grabbing"
+        >
+          {TECHS.map((tech, i) => (
+            <div
+              key={tech.name}
+              ref={(el) => {
+                itemRefs.current[i] = el;
+              }}
+              className="group absolute left-1/2 top-1/2 flex cursor-pointer select-none flex-col items-center gap-[3px] will-change-transform [transition:filter_0.2s] hover:[filter:drop-shadow(0_0_8px_#06b6d4)]"
+            >
+              <div className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-slate-900/10 bg-slate-900/[0.04] text-[1.1rem] transition-colors group-hover:border-cyan-500/50 group-hover:bg-cyan-500/15 dark:border-white/10 dark:bg-white/[0.04]">
+                {tech.icon}
+                <span
+                  className="absolute right-0.5 top-0.5 h-1.5 w-1.5 rounded-full"
+                  style={{ background: COLOR_OF[tech.category] }}
+                />
+              </div>
+              <div className="whitespace-nowrap font-mono text-[0.5rem] text-slate-900/70 transition-colors group-hover:text-cyan-500 dark:text-white/40">
+                {tech.name}
+              </div>
             </div>
-
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div
-                ref={containerRef}
-                className="relative w-full h-full cursor-grab active:cursor-grabbing"
-                style={{ userSelect: "none", touchAction: "none" }}
-              />
-            </div>
-          </div>
-
-          {/* Mobile-only slider */}
-          <div className="flex md:hidden flex-col items-center gap-3 mt-5">
-            <div className="flex items-center gap-2">
-              <span className="text-slate-600 dark:text-zinc-300 text-[11px] font-mono">
-                slow
-              </span>
-              <input
-                type="range"
-                min="0"
-                max="10"
-                defaultValue="4"
-                onChange={(e) => {
-                  speedRef.current = parseFloat(e.target.value);
-                }}
-                className="w-28 h-1 accent-cyan-500 cursor-pointer"
-              />
-              <span className="text-slate-600 dark:text-zinc-300 text-[11px] font-mono">
-                fast
-              </span>
-            </div>
-          </div>
-
-          {/* Desktop-only extras */}
-          <div className="hidden md:flex flex-col items-center gap-3 mt-6">
-            <p className="text-slate-600 dark:text-zinc-400 text-[11px] font-mono tracking-wide text-center">
-              {"// "}
-              <span className="text-cyan-600 dark:text-cyan-400">drag</span>
-              {" to rotate · "}
-              <span className="text-cyan-600 dark:text-cyan-400">hover</span>
-              {" to explore"}
-            </p>
-
-            <div className="flex items-center gap-2">
-              <span className="text-slate-600 dark:text-zinc-300 text-[11px] font-mono">
-                slow
-              </span>
-              <input
-                type="range"
-                min="0"
-                max="10"
-                defaultValue="4"
-                onChange={(e) => {
-                  speedRef.current = parseFloat(e.target.value);
-                }}
-                className="w-24 h-1 accent-cyan-500 cursor-pointer"
-              />
-              <span className="text-slate-600 dark:text-zinc-300 text-[11px] font-mono">
-                fast
-              </span>
-            </div>
-
-            <div className="flex flex-wrap justify-center gap-x-5 gap-y-1 max-w-xs pt-1">
-              {legend.map((item) => (
-                <div
-                  key={item.label}
-                  className="flex items-center gap-2 transition-opacity duration-200 hover:opacity-80"
-                >
-                  <div
-                    className="w-2.5 h-2.5 rounded-full ring-1 ring-black/10 dark:ring-white/10"
-                    style={{ background: item.color }}
-                  />
-                  <span className="text-slate-700 dark:text-zinc-300 text-[11px] font-mono tracking-wide">
-                    {item.label}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
+          ))}
         </div>
       </div>
+
+      <p className="font-mono text-[11px] tracking-wide text-slate-600 dark:text-zinc-400">
+        {"// "}
+        <span className="text-cyan-600 dark:text-cyan-400">drag</span> to rotate
+        · <span className="text-cyan-600 dark:text-cyan-400">hover</span> to
+        explore
+      </p>
+
+      <div className="flex items-center gap-2">
+        <span className="font-mono text-[11px] text-slate-600 dark:text-zinc-300">
+          slow
+        </span>
+        <input
+          type="range"
+          min="0"
+          max="10"
+          step="0.5"
+          defaultValue={DEFAULT_SPEED}
+          aria-label="Rotation speed"
+          onChange={(e) => {
+            speed.current = parseFloat(e.target.value);
+          }}
+          className="h-1 w-24 cursor-pointer accent-cyan-500"
+        />
+        <span className="font-mono text-[11px] text-slate-600 dark:text-zinc-300">
+          fast
+        </span>
+      </div>
+
+      <ul className="flex max-w-xs flex-wrap justify-center gap-x-5 gap-y-1 pt-1">
+        {LEGEND.map((item) => (
+          <li key={item.label} className="flex items-center gap-2">
+            <span
+              className="h-2.5 w-2.5 rounded-full ring-1 ring-black/10 dark:ring-white/10"
+              style={{ background: item.color }}
+            />
+            <span className="font-mono text-[11px] tracking-wide text-slate-700 dark:text-zinc-300">
+              {item.label}
+            </span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

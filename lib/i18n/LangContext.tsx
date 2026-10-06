@@ -1,11 +1,21 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import en from "./en";
 import fi from "./fi";
 import type { Translations } from "./en";
 
 export type Locale = "en" | "fi";
+
+const STORAGE_KEY = "lang";
 
 const translations: Record<Locale, Translations> = { en, fi };
 
@@ -21,34 +31,41 @@ const LangContext = createContext<LangContextType>({
   setLocale: () => {},
 });
 
-export function LangProvider({ children }: { children: React.ReactNode }) {
-  // ✅ Always start in English
+const isLocale = (v: unknown): v is Locale => v === "en" || v === "fi";
+
+export function LangProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>("en");
 
-  const setLocale = (l: Locale) => {
-    setLocaleState(l);
-
-    // Optional: save the user's choice for later use (but we won't auto-apply it on load)
+  // Restore the saved choice after mount (keeps server and client HTML identical)
+  useEffect(() => {
     try {
-      window.localStorage.setItem("lang", l);
-    } catch {}
+      const saved = window.localStorage.getItem(STORAGE_KEY);
+      if (isLocale(saved)) setLocaleState(saved);
+    } catch {
+      /* storage unavailable: stay on the default */
+    }
+  }, []);
 
-    // Keep <html lang="..."> correct immediately
-    document.documentElement.lang = l;
-  };
-
-  const t = useMemo(() => translations[locale], [locale]);
-
-  // Keep <html lang="..."> correct on first render too
+  // Keep <html lang="..."> in sync for screen readers and search engines
   useEffect(() => {
     document.documentElement.lang = locale;
   }, [locale]);
 
-  return (
-    <LangContext.Provider value={{ locale, t, setLocale }}>
-      {children}
-    </LangContext.Provider>
+  const setLocale = useCallback((l: Locale) => {
+    setLocaleState(l);
+    try {
+      window.localStorage.setItem(STORAGE_KEY, l);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const value = useMemo(
+    () => ({ locale, t: translations[locale], setLocale }),
+    [locale, setLocale],
   );
+
+  return <LangContext.Provider value={value}>{children}</LangContext.Provider>;
 }
 
 export function useLang() {

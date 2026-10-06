@@ -1,38 +1,91 @@
 @import "tailwindcss";
 
-@variant dark (&:where(.dark, .dark *));
+/* Tailwind v4: defines the `dark:` variant to follow the .dark class (next-themes) */
+@custom-variant dark (&:where(.dark, .dark *));
 
-@theme {
-  --font-inter: var(--font-inter), sans-serif;
-  --font-syne: var(--font-syne), sans-serif;
-  --font-mono: var(--font-mono), monospace;
+/*
+ * Font tokens. The next/font variables in layout.tsx are named
+ * --font-inter-loaded, --font-syne-loaded and --font-mono-loaded,
+ * so these tokens never reference themselves.
+ * Gives you the font-inter, font-syne and font-mono utility classes.
+ */
+@theme inline {
+  --font-inter: var(--font-inter-loaded), ui-sans-serif, system-ui, sans-serif;
+  --font-syne: var(--font-syne-loaded), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-mono-loaded), ui-monospace, monospace;
 }
 
 @layer base {
   html {
     scroll-behavior: smooth;
+    scroll-padding-top: 4rem;
+    /* keeps anchor targets clear of the fixed h-16 navbar */
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
   }
 
   body {
+    @apply font-inter;
     min-height: 100vh;
-    font-family: var(--font-inter);
+    min-height: 100dvh;
+    /* avoids the mobile browser-bar jump */
   }
 
-  h1, h2, h3, h4 {
-    font-family: var(--font-syne);
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-syne;
   }
 
+  /* Scrollbar */
   ::-webkit-scrollbar {
     width: 6px;
   }
+
   ::-webkit-scrollbar-track {
     background: transparent;
   }
+
   ::-webkit-scrollbar-thumb {
-    background: #1f1f1f;
+    background: #d4d4d8;
     border-radius: 3px;
   }
+
+  .dark ::-webkit-scrollbar-thumb {
+    background: #3f3f46;
+  }
+
   ::-webkit-scrollbar-thumb:hover {
     background: #06b6d4;
+  }
+}
+
+/* About section: hobbies marquee (the track needs w-max, see About.tsx) */
+@keyframes marquee-about {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-33.3333%);
+  }
+}
+
+.animate-marquee-about {
+  animation: marquee-about 35s linear infinite;
+}
+
+.animate-marquee-about:hover {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee-about {
+    animation: none;
   }
 }

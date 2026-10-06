@@ -1,23 +1,18 @@
-import { defineConfig } from "eslint/config"
-import nextVitals from "eslint-config-next/core-web-vitals"
-import nextTs from "eslint-config-next/typescript"
+import { defineConfig, globalIgnores } from "eslint/config";
+import nextVitals from "eslint-config-next/core-web-vitals";
+import nextTs from "eslint-config-next/typescript";
 
-export default defineConfig([
-  // ✅ ESLint v9 ignores (replaces .eslintignore)
-  {
-    ignores: [
-      ".next/**",
-      "node_modules/**",
-      "out/**",
-      "dist/**",
-      "build/**",
-      "write-projects.js"
-    ],
-  },
-
-  // ✅ Next.js Core Web Vitals rules
+const eslintConfig = defineConfig([
   ...nextVitals,
-
-  // ✅ Next.js + TypeScript rules
   ...nextTs,
-])
+  // Override default ignores of eslint-config-next.
+  globalIgnores([
+    // Default ignores of eslint-config-next:
+    ".next/**",
+    "out/**",
+    "build/**",
+    "next-env.d.ts",
+  ]),
+]);
+
+export default eslintConfig;

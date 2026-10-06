@@ -1,4 +1,20 @@
-export const projects = [
+export type Category = 'Full Stack' | 'AI' | 'Data' | 'Frontend'
+
+export type Project = {
+  id: number
+  title: string
+  description: string
+  descriptionFi: string
+  tags: string[]
+  category: Category
+  color: string
+  /** Omit when there is no live demo (the demo button is hidden) */
+  demo?: string
+  code: string
+  featured: boolean
+}
+
+export const projects: Project[] = [
   {
     id: 1,
     title: 'ChatApp',
@@ -31,13 +47,12 @@ export const projects = [
     id: 3,
     title: 'Student Score Prediction',
     description:
-      "ML project using supervised learning to predict students final grades. Implements Random Forest and Gaussian Naive Bayes models to identify struggling students early and help educators intervene in time.",
+      "ML project using supervised learning to predict students' final grades. Implements Random Forest and Gaussian Naive Bayes models to identify struggling students early and help educators intervene in time.",
     descriptionFi:
       'Koneoppimisprojekti (ohjattu oppiminen) opiskelijoiden arvosanojen ennustamiseen. Random Forest ja Gaussian Naive Bayes auttavat tunnistamaan riskissä olevat opiskelijat ajoissa.',
     tags: ['Python', 'Scikit-learn', 'Random Forest', 'Pandas', 'Matplotlib', 'Jupyter'],
     category: 'Data',
     color: '#f97316',
-    demo: 'https://github.com/Sankalpa7/Score-Prediction-data-analysis-and-visualization',
     code: 'https://github.com/Sankalpa7/Score-Prediction-data-analysis-and-visualization',
     featured: true,
   },
@@ -51,7 +66,6 @@ export const projects = [
     tags: ['Python', 'BeautifulSoup', 'Jupyter', 'Web Scraping', 'Pandas'],
     category: 'Data',
     color: '#22c55e',
-    demo: 'https://github.com/Sankalpa7/Flight-Website-Web-scrapping',
     code: 'https://github.com/Sankalpa7/Flight-Website-Web-scrapping',
     featured: true,
   },
@@ -61,7 +75,7 @@ export const projects = [
     description:
       'A data visualization dashboard tracking global Covid-19 statistics with interactive bar graphs built with Chart.js showing cases, recoveries, and deaths by country.',
     descriptionFi:
-      'Data-visualisointidashboard Covid-19-tilastoille. Interaktiiviset Chart.js -kaaviot näyttävät tartunnat, parantuneet ja kuolemat maittain.',
+      'Data-visualisointidashboard Covid-19-tilastoille. Interaktiiviset Chart.js-kaaviot näyttävät tartunnat, parantuneet ja kuolemat maittain.',
     tags: ['React', 'Chart.js', 'REST API', 'Data Visualization'],
     category: 'Data',
     color: '#ef4444',
@@ -126,5 +140,3 @@ export const projects = [
     featured: false,
   },
 ]
-
-export type Project = typeof projects[0]

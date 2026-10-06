@@ -134,7 +134,7 @@ const WELCOME_WORD = "Welcome";
 const S = 50;
 const FACE_SIZE = 100;
 
-// Static, permanent face placements — the cube is always fully assembled.
+// Static, permanent face placements: the cube is always fully assembled.
 const ASSEMBLED = [
   `translateZ(${S}px)`,
   `rotateY(180deg) translateZ(${S}px)`,
@@ -145,11 +145,11 @@ const ASSEMBLED = [
 ] as const;
 
 /** ---------------- Ring geometry ---------------- */
-const RING_SIZE = 260; // outer box that the circular progress ring occupies
+const RING_SIZE = 260;
 const RING_STROKE = 6;
 const RING_RADIUS = (RING_SIZE - RING_STROKE) / 2;
 const RING_CIRC = 2 * Math.PI * RING_RADIUS;
-const CUBE_BOX = 220; // perspective box holding the cube (must be <= RING_SIZE)
+const CUBE_BOX = 220;
 
 /** ---------------- Color helpers ---------------- */
 function hexToRgb(hex: string) {
@@ -238,7 +238,7 @@ function hslToRgb(h: number, s: number, l: number) {
   };
 }
 
-/** Shifts the accent color's hue by `deg` — used to build a multi-tone ring gradient */
+/** Shifts the accent color's hue by `deg`, used to build a multi-tone ring gradient */
 function shiftHue(accent: string, deg: number) {
   const rgb = cssColorToRgb(accent) || { r: 34, g: 211, b: 238 };
   const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
@@ -251,7 +251,7 @@ function shiftHue(accent: string, deg: number) {
   return `rgb(${out.r},${out.g},${out.b})`;
 }
 
-/** ---------------- Particle BG (SMOOTHER) ---------------- */
+/** ---------------- Particle background ---------------- */
 function ParticleBg({ accentColor }: { accentColor: string }) {
   const ref = useRef<HTMLCanvasElement | null>(null);
 
@@ -364,11 +364,12 @@ function ParticleBg({ accentColor }: { accentColor: string }) {
     <canvas
       ref={ref}
       className="pointer-events-none absolute inset-0 h-full w-full"
+      aria-hidden="true"
     />
   );
 }
 
-/** Circular progress ring: outer static track + animated gradient arc */
+/** Circular progress ring: static track + animated gradient arc */
 function ProgressRing({
   progress,
   accentColor,
@@ -386,6 +387,7 @@ function ProgressRing({
       viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}
       className="absolute inset-0"
       style={{ transform: "rotate(-90deg)" }}
+      aria-hidden="true"
     >
       <defs>
         <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
@@ -431,11 +433,23 @@ export default function IntroLoader({ accentColor, onDone }: IntroLoaderProps) {
   const cubeRef = useRef<HTMLDivElement | null>(null);
   const rafRef = useRef<number | null>(null);
   const timeouts = useRef<number[]>([]);
+  const intervalRef = useRef<number | null>(null);
   const finishedRef = useRef(false);
+
+  // Keep the latest onDone without making `finish` change identity
+  // (a changing `finish` would restart the progress counter from 0)
+  const onDoneRef = useRef(onDone);
+  useEffect(() => {
+    onDoneRef.current = onDone;
+  });
 
   const clearAllTimers = useCallback(() => {
     for (const id of timeouts.current) window.clearTimeout(id);
     timeouts.current = [];
+    if (intervalRef.current !== null) {
+      window.clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
   }, []);
 
   const setTO = useCallback((fn: () => void, ms: number) => {
@@ -449,7 +463,7 @@ export default function IntroLoader({ accentColor, onDone }: IntroLoaderProps) {
     rafRef.current = null;
   }, []);
 
-  // Continuous slow tumble on every axis — never stops until we finish.
+  // Continuous slow tumble on every axis, until we finish.
   const rot = useRef({ x: -18, y: -20, z: 0, vx: 0, vy: 0, vz: 0, t: 0 });
 
   const startSpin = useCallback(() => {
@@ -459,7 +473,7 @@ export default function IntroLoader({ accentColor, onDone }: IntroLoaderProps) {
     const tick = () => {
       r.t += 0.008;
 
-      const ty = r.y + 0.35; // slow continuous yaw, never settles
+      const ty = r.y + 0.35;
       const tx = -18 + Math.sin(r.t * 0.6) * 20;
       const tz = Math.sin(r.t * 0.4) * 10;
 
@@ -493,10 +507,9 @@ export default function IntroLoader({ accentColor, onDone }: IntroLoaderProps) {
     setAllowPointer(false);
     stopRAF();
     clearAllTimers();
-    onDone();
-  }, [onDone, stopRAF, clearAllTimers]);
+    onDoneRef.current();
+  }, [stopRAF, clearAllTimers]);
 
-  // Start spinning immediately — the cube is always fully assembled.
   useEffect(() => {
     startSpin();
     return () => {
@@ -505,28 +518,33 @@ export default function IntroLoader({ accentColor, onDone }: IntroLoaderProps) {
     };
   }, [startSpin, stopRAF, clearAllTimers]);
 
-  // Progress ticks up; the moment it hits 100 we finish — no extra sequence after.
+  // Progress ticks up; the moment it hits 100 we finish shortly after.
+  // ~3 seconds in total (the original took about 4.2s).
   useEffect(() => {
     let p = 0;
-    const iv = window.setInterval(() => {
+    intervalRef.current = window.setInterval(() => {
       const step =
         p < 72 ? Math.random() * 7 + 4 : p < 92 ? Math.random() * 3 + 2 : 2;
       p = Math.min(100, p + step);
-      const pi = Math.floor(p);
-
-      setProgress(pi);
+      setProgress(Math.floor(p));
 
       if (p >= 100) {
-        window.clearInterval(iv);
+        if (intervalRef.current !== null)
+          window.clearInterval(intervalRef.current);
+        intervalRef.current = null;
         setFlashAll(true);
         setTO(() => finish(), 450);
       }
-    }, 150);
+    }, 110);
 
-    return () => window.clearInterval(iv);
+    return () => {
+      if (intervalRef.current !== null)
+        window.clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    };
   }, [finish, setTO]);
 
-  // Stop/restart RAF when tab visibility changes
+  // Pause the spin while the tab is hidden
   useEffect(() => {
     const onVis = () => {
       if (document.hidden) stopRAF();
@@ -536,7 +554,7 @@ export default function IntroLoader({ accentColor, onDone }: IntroLoaderProps) {
     return () => document.removeEventListener("visibilitychange", onVis);
   }, [startSpin, stopRAF]);
 
-  // Esc skip
+  // Esc skips
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") finish();
@@ -554,8 +572,15 @@ export default function IntroLoader({ accentColor, onDone }: IntroLoaderProps) {
     [flashAll, accentColor],
   );
 
+  const revealCount = Math.min(
+    WELCOME_WORD.length,
+    Math.ceil((progress / 100) * WELCOME_WORD.length),
+  );
+
   return (
     <motion.div
+      role="dialog"
+      aria-label="Loading"
       className="fixed inset-0 z-[10050] overflow-hidden"
       style={{
         background: "#03010a",
@@ -570,7 +595,7 @@ export default function IntroLoader({ accentColor, onDone }: IntroLoaderProps) {
       <button
         type="button"
         onClick={finish}
-        className="absolute right-4 top-4 z-50 rounded-full px-4 py-2 text-xs font-mono tracking-widest uppercase"
+        className="absolute right-4 top-4 z-50 rounded-full px-4 py-2 font-mono text-xs uppercase tracking-widest focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
         style={{
           border: `1px solid ${accentColor}`,
           color: "rgba(255,255,255,0.9)",
@@ -578,7 +603,7 @@ export default function IntroLoader({ accentColor, onDone }: IntroLoaderProps) {
           boxShadow: `0 0 18px ${accentColor}40`,
         }}
       >
-        Skip (Esc)
+        Skip<span className="hidden sm:inline"> (Esc)</span>
       </button>
 
       <div className="absolute inset-0 grid place-items-center">
@@ -598,6 +623,7 @@ export default function IntroLoader({ accentColor, onDone }: IntroLoaderProps) {
                 transform: "translate(-50%, -50%)",
                 perspective: 700,
               }}
+              aria-hidden="true"
             >
               <div
                 className="absolute left-1/2 top-1/2"
@@ -658,24 +684,22 @@ export default function IntroLoader({ accentColor, onDone }: IntroLoaderProps) {
           <div className="mt-6 flex flex-col items-center">
             <div
               className="font-mono text-4xl font-extrabold tabular-nums tracking-wider"
-              style={{
-                color: "#fff",
-                textShadow: `0 0 20px ${accentColor}70`,
-              }}
+              style={{ color: "#fff", textShadow: `0 0 20px ${accentColor}70` }}
+              aria-live="polite"
             >
               {progress}%
             </div>
 
-            {/* Reveals one letter per tick of the same `progress` value that fills
-                the ring, so the word finishes exactly when the ring hits 100%.
-                Each letter unrolls upward like a blind opening, and is rendered
-                with a translucent glass-gradient fill (no card/background). */}
-            <div className="mt-10 flex gap-1">
+            {/* One letter per progress tick, so the word finishes exactly at 100%.
+                The glow filter sits on this wrapper, not on each letter: filtering
+                every gradient-clipped letter caused the dark boxes behind them. */}
+            <div
+              className="mt-10 flex gap-1"
+              style={{
+                filter: `drop-shadow(0 2px 6px rgba(0,0,0,0.45)) drop-shadow(0 0 18px ${accentColor}80)`,
+              }}
+            >
               {WELCOME_WORD.split("").map((ch, i) => {
-                const revealCount = Math.min(
-                  WELCOME_WORD.length,
-                  Math.ceil((progress / 100) * WELCOME_WORD.length),
-                );
                 const shown = i < revealCount;
                 return (
                   <span
@@ -693,9 +717,9 @@ export default function IntroLoader({ accentColor, onDone }: IntroLoaderProps) {
                         opacity: shown ? 1 : 0,
                       }}
                       transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+                      className="font-syne"
                       style={{
                         display: "inline-block",
-                        fontFamily: "var(--font-syne)",
                         fontSize: "clamp(2.25rem, 6vw, 3.75rem)",
                         fontWeight: 800,
                         lineHeight: 1,
@@ -704,7 +728,6 @@ export default function IntroLoader({ accentColor, onDone }: IntroLoaderProps) {
                         backgroundClip: "text",
                         color: "transparent",
                         WebkitTextFillColor: "transparent",
-                        filter: `drop-shadow(0 2px 6px rgba(0,0,0,0.45)) drop-shadow(0 0 18px ${accentColor}80)`,
                       }}
                     >
                       {ch}

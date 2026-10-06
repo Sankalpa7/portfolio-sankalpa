@@ -1,6 +1,6 @@
 import type { Translations } from './en'
 
-const fi = {
+const fi: Translations = {
   nav: {
     about: 'Tietoa',
     projects: 'Projektit',
@@ -8,10 +8,6 @@ const fi = {
     skills: 'Taidot',
     certifications: 'Sertifikaatit',
     contact: 'Yhteystiedot',
-    language: 'Kieli',
-    theme: 'Teema',
-    light: 'Vaalea tila',
-    dark: 'Tumma tila',
   },
   hero: {
     available: 'Avoinna työtarjouksille',
@@ -36,12 +32,9 @@ const fi = {
     currently: 'Tällä hetkellä',
     quick_facts: '// pikatiedot',
     beyond_code: 'Elämää koodin ulkopuolella',
-    p1:
-      'Hei! Olen Sankalpa — tietotekniikan maisteriopiskelija Åbo Akademin yliopistossa Turussa. Matkani kulkee kahden maan välillä — Nepal on opettanut lämpöä ja sitkeyttä, Suomi taas tarkkuutta ja innovointia.',
-    p2:
-      'Minulla on IT-insinöörin tutkinto ja viimeistelen tietotekniikan maisteriopintojani. Polku on kasvanut full-stack-kehityksestä tekoälyyn, koneoppimiseen ja dataohjautuvaan maailmaan.',
-    p3:
-      'Jokainen dataset kertoo tarinan. Jokainen malli on uusi linssi todellisuuteen. Uteliaisuus pitää minut liikkeessä.',
+    p1: 'Hei! Olen Sankalpa — tietotekniikan maisteriopiskelija Åbo Akademin yliopistossa Turussa. Matkani kulkee kahden maan välillä — Nepal on opettanut lämpöä ja sitkeyttä, Suomi taas tarkkuutta ja innovointia.',
+    p2: 'Minulla on IT-insinöörin tutkinto ja viimeistelen tietotekniikan maisteriopintojani. Polku on kasvanut full-stack-kehityksestä tekoälyyn, koneoppimiseen ja dataohjautuvaan maailmaan.',
+    p3: 'Jokainen dataset kertoo tarinan. Jokainen malli on uusi linssi todellisuuteen. Uteliaisuus pitää minut liikkeessä.',
     currently_text:
       'Tutkin tekoälyn, data-analytiikan ja ohjelmistokehityksen risteystä — rakennan projekteja, opin uusia teknologioita ja valmistaudun kokopäiväisiin mahdollisuuksiin IT-alalla.',
     stats: {
@@ -121,8 +114,7 @@ const fi = {
       badge: '// palkinnot',
       title: 'Palkinnot & kohokohdat',
       replay: '✨ Toista juhla',
-      desc:
-        'Apurahat ja tunnustukset, jotka ovat muokanneet matkaani — tiedekuntapalkinnoista palkittuun digitaaliseen jonotusjärjestelmään.',
+      desc: 'Apurahat ja tunnustukset, jotka ovat muokanneet matkaani — tiedekuntapalkinnoista palkittuun digitaaliseen jonotusjärjestelmään.',
       major: 'Merkittävät palkinnot',
       best: 'Paras IT-ratkaisu',
       featured: 'Esittelyprojekti',
@@ -146,7 +138,7 @@ const fi = {
     open_full: 'Avaa koko dokumentti',
   },
   contact: {
-    section: '// 07',
+    section: '// 06',
     title: 'Yhteystiedot',
     subtitle:
       'Avaa tukipyyntö — lupaan, että SLA-aikani on parempi kuin useimmilla helpdeskeillä.',
@@ -167,13 +159,15 @@ const fi = {
     sla_based_val: 'Helsinki, Suomi',
     ticket_id: 'Tiketti-tunnus',
     activity_title: 'Viimeaikainen toiminta',
-    activity: ['Pro gradu -työ käynnissä', 'Etsin aktiivisesti pilvi- / IT-alan töitä', 'Portfolio v2 julkaistu'],
+    activity_1: 'Pro gradu -työ käynnissä',
+    activity_2: 'Etsin aktiivisesti pilvi- / IT-alan töitä',
+    activity_3: 'Portfolio v2 julkaistu',
     reach: 'Tai tavoita minut',
     form_new: 'Uusi pyyntö',
     form_title: 'Tiketin tiedot',
     priority: 'Prioriteetti',
     urgency: {
-      exploring: 'Tutustumassa',
+      explore: 'Tutustumassa',
       soon: 'Pian',
       asap: 'Kiireellinen',
     },
@@ -182,24 +176,29 @@ const fi = {
     field_subject: 'Miten voin auttaa sinua?',
     field_subject_placeholder: 'esim. Frontend-rooli Acme Corp:ssa',
     field_message: 'Kuvaile pyyntösi',
-    field_message_placeholder: 'Mitä enemmän yksityiskohtia, sen parempi — luen jokaisen viestin.',
-    char_limit: 'Enintään 900 merkkiä',
+    field_message_placeholder:
+      'Mitä enemmän yksityiskohtia, sen parempi — luen jokaisen viestin.',
+    chars_up_to: 'Enintään',
+    chars_label: 'merkkiä',
     building: 'luodaan tikettiä',
     attach_toggle: 'Liitä CV / portfolio-linkki',
     attach_placeholder: 'https://oma-portfolio.fi',
     submit_idle: 'LÄHETÄ VIESTI',
     submit_hover: 'LUO TIKETTI',
     submit_loading: 'LUODAAN TIKETTIÄ…',
-    footer_note: 'Viestisi menee suoraan minulle — ei botteja, ei autovastaajia.',
+    footer_note:
+      'Viestisi menee suoraan minulle — ei botteja, ei autovastaajia.',
     success_title: 'Tiketti luotu.',
     success_sub: 'Palaan sinulle pian. Pidä silmällä sähköpostiasi.',
     success_ref: 'Tiketti-viite:',
     success_quote: '"Kiitos yhteydenotostasi. – Sankalpa"',
     send_another: 'Lähetä toinen viesti',
-    error_msg: 'Jokin meni pieleen — lähetä sähköpostia suoraan osoitteeseen sankalpaneupane7@gmail.com',
+    error_msg:
+      'Jokin meni pieleen — lähetä sähköpostia suoraan osoitteeseen sankalpaneupane7@gmail.com',
+    error_invalid: 'Tarkista sähköpostiosoite ja viesti ja yritä uudelleen.',
     footer_rights: 'Kaikki oikeudet pidätetään.',
-    footer_built: 'Rakennettu Next.js:llä ja Tailwindillä',
+    built_with: 'Rakennettu Next.js:llä ja Tailwindillä',
   },
-} satisfies Translations
+}
 
 export default fi

@@ -1,179 +1,359 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from "react";
+import {
+  motion,
+  AnimatePresence,
+  useInView,
+  useReducedMotion,
+} from "framer-motion";
 import { useLang } from "@/lib/i18n/LangContext";
 
 type CatId = "web" | "data" | "tools";
+type Locale = "en" | "fi";
+type Translations = ReturnType<typeof useLang>["t"];
 
-declare global {
-  interface Window {
-    __skillsSwitchCat__?: (id: CatId) => void;
-  }
-}
+type Skill = { name: string; icon: string };
 
-type SkillIcon = {
-  name: string;
-  icon: string;
-};
-
-type SkillCategoryConfig = {
+type Category = {
   id: CatId;
-  labelKey: CatId;
   number: string;
   color: string;
   rgb: string;
-  descriptionKey: CatId;
-  pills: string[];
-  skills: SkillIcon[];
+  hubIcon: string;
+  hubLines: [string, string];
+  skills: Skill[];
 };
 
-type SkillsTranslation = {
-  section: string;
-  title: string;
-  subtitle: string;
-  cats?: Record<CatId, string>;
-  categoryDescriptions?: Record<CatId, string>;
-  awards: {
-    badge: string;
-    title: string;
-    replay: string;
-    desc?: string;
-    best: string;
-    major: string;
-    featured: string;
+const CATEGORIES: Category[] = [
+  {
+    id: "web",
+    number: "01",
+    color: "#06b6d4",
+    rgb: "6,182,212",
+    hubIcon: "💻",
+    hubLines: ["WEB", "STACK"],
+    skills: [
+      { name: "React", icon: "⚛️" },
+      { name: "Next.js", icon: "▲" },
+      { name: "JavaScript", icon: "📜" },
+      { name: "HTML5", icon: "🌐" },
+      { name: "CSS3", icon: "🎨" },
+      { name: "Bootstrap", icon: "🅱️" },
+    ],
+  },
+  {
+    id: "data",
+    number: "02",
+    color: "#22c55e",
+    rgb: "34,197,94",
+    hubIcon: "📊",
+    hubLines: ["DATA", "& ML"],
+    skills: [
+      { name: "Python", icon: "🐍" },
+      { name: "Scikit-learn", icon: "🤖" },
+      { name: "Pandas", icon: "🐼" },
+      { name: "SQL", icon: "🗄️" },
+      { name: "R", icon: "📈" },
+      { name: "Tableau", icon: "📉" },
+      { name: "Matplotlib", icon: "📊" },
+      { name: "Google Sheets", icon: "📋" },
+    ],
+  },
+  {
+    id: "tools",
+    number: "03",
+    color: "#a855f7",
+    rgb: "168,85,247",
+    hubIcon: "🛠️",
+    hubLines: ["IT", "STACK"],
+    skills: [
+      { name: "GitHub", icon: "🐙" },
+      { name: "Linux", icon: "🐧" },
+      { name: "Jupyter", icon: "📓" },
+      { name: "Azure AD", icon: "☁️" },
+      { name: "Active Directory", icon: "🖥️" },
+      { name: "VMware", icon: "⚙️" },
+      { name: "ServiceNow", icon: "🎫" },
+      { name: "Office365", icon: "📧" },
+    ],
+  },
+];
+
+const LABELS: Record<Locale, Record<CatId, string>> = {
+  en: { web: "Web & Frontend", data: "Data & ML", tools: "Tools & IT" },
+  fi: { web: "Web & Frontend", data: "Data & ML", tools: "Työkalut & IT" },
+};
+
+const DESCRIPTIONS: Record<Locale, Record<CatId, string>> = {
+  en: {
+    web: "Building fast, modern interfaces — from React components to full Next.js applications.",
+    data: "From raw datasets to trained models, working with supervised learning and real-world data.",
+    tools:
+      "Comfortable in enterprise IT environments — from Azure AD and Linux to everyday tooling.",
+  },
+  fi: {
+    web: "Nopeiden, modernien käyttöliittymien rakentamista — React-komponenteista kokonaisiin Next.js-sovelluksiin.",
+    data: "Raakadatasta koulutettuihin malleihin — ohjattua oppimista ja oikeaa dataa.",
+    tools:
+      "Sujuvaa työskentelyä yritysten IT-ympäristöissä — Azure AD:sta ja Linuxista arjen työkaluihin.",
+  },
+};
+
+// Wheel geometry (the wheel box is 340 x 420 px)
+const HUB_CX = 170;
+const HUB_CY = 310;
+const ORBIT_R = 130;
+const ANIM_DUR = 700;
+const PAUSE_DUR = 2000;
+const SESSION_KEY = "skillsAwardsSeen";
+const VIEWPORT = { once: true, margin: "-120px" } as const;
+
+const easeInOutCubic = (x: number) =>
+  x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+
+const anglePos = (deg: number) => {
+  const rad = (deg * Math.PI) / 180;
+  return {
+    x: HUB_CX + ORBIT_R * Math.cos(rad),
+    y: HUB_CY + ORBIT_R * Math.sin(rad),
   };
-  unlocked_badge?: string;
-  unlocked_body?: string;
-  unlocked_cta?: string;
 };
 
-type Translation = {
-  skills: SkillsTranslation;
-  [key: string]: unknown;
-};
+/* ---------------- Wheel ---------------- */
+
+function Flyer({
+  icon,
+  rgb,
+  startDeg,
+  endDeg,
+  entering,
+  onDone,
+}: {
+  icon: string;
+  rgb: string;
+  startDeg: number;
+  endDeg: number;
+  entering: boolean;
+  onDone?: () => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const doneRef = useRef(onDone);
+
+  useEffect(() => {
+    doneRef.current = onDone;
+  });
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const render = (raw: number) => {
+      const eased = easeInOutCubic(raw);
+      const pos = anglePos(startDeg + (endDeg - startDeg) * eased);
+      el.style.left = `${pos.x - 28}px`;
+      el.style.top = `${pos.y - 28}px`;
+
+      const relY = (pos.y - (HUB_CY - ORBIT_R)) / (2 * ORBIT_R);
+      const depth = entering ? relY : 1 - relY;
+      const opacity = entering
+        ? Math.max(0, 1 - depth * 1.2)
+        : Math.max(0, depth * 1.2 - 0.2);
+      const blur = entering ? depth * 6 : (1 - depth) * 6;
+      const scale = entering ? 0.6 + (1 - depth) * 0.4 : 0.6 + depth * 0.4;
+
+      el.style.opacity = String(opacity);
+      el.style.filter = blur > 0.3 ? `blur(${blur.toFixed(1)}px)` : "none";
+      el.style.transform = `scale(${scale.toFixed(3)})`;
+    };
+
+    let raf = 0;
+    const startTime = performance.now();
+    render(0);
+
+    const frame = (now: number) => {
+      const raw = Math.min((now - startTime) / ANIM_DUR, 1);
+      render(raw);
+      if (raw < 1) raf = requestAnimationFrame(frame);
+      else doneRef.current?.();
+    };
+    raf = requestAnimationFrame(frame);
+
+    return () => cancelAnimationFrame(raf);
+  }, [startDeg, endDeg, entering]);
+
+  return (
+    <div
+      ref={ref}
+      aria-hidden="true"
+      className="pointer-events-none absolute z-20 flex h-14 w-14 items-center justify-center rounded-2xl border text-2xl opacity-0 backdrop-blur"
+      style={{
+        background: `rgba(${rgb},0.10)`,
+        borderColor: `rgba(${rgb},0.22)`,
+      }}
+    >
+      {icon}
+    </div>
+  );
+}
+
+function SkillWheel({ cat }: { cat: Category }) {
+  const reduced = useReducedMotion();
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const inView = useInView(wrapRef);
+
+  const [idx, setIdx] = useState(0);
+  const [moving, setMoving] = useState(false);
+  const [showIncoming, setShowIncoming] = useState(false);
+
+  const count = cat.skills.length;
+  const current = cat.skills[idx];
+  const incoming = cat.skills[(idx + 1) % count];
+
+  // Idle: after a pause, either swap instantly (reduced motion) or start the flyers.
+  // Paused whenever the wheel is off-screen.
+  useEffect(() => {
+    if (!inView || moving) return;
+    const id = setTimeout(() => {
+      if (reduced) setIdx((i) => (i + 1) % count);
+      else setMoving(true);
+    }, PAUSE_DUR);
+    return () => clearTimeout(id);
+  }, [inView, moving, idx, reduced, count]);
+
+  // The incoming flyer starts slightly after the outgoing one
+  useEffect(() => {
+    if (!moving) return;
+    const id = setTimeout(() => setShowIncoming(true), 60);
+    return () => clearTimeout(id);
+  }, [moving]);
+
+  const finish = useCallback(() => {
+    setIdx((i) => (i + 1) % count);
+    setMoving(false);
+    setShowIncoming(false);
+  }, [count]);
+
+  const shown = !moving;
+
+  return (
+    <div
+      ref={wrapRef}
+      aria-hidden="true"
+      className="relative -mt-2 mx-auto h-[420px] w-[340px] flex-shrink-0 md:-mt-4 md:mx-0 md:mr-auto"
+    >
+      {/* orbit ring */}
+      <div
+        className="pointer-events-none absolute bottom-5 left-1/2 h-[320px] w-[320px] -translate-x-1/2 rounded-full border border-dashed border-black/10 dark:border-white/5"
+        style={{ borderColor: `rgba(${cat.rgb},0.10)` }}
+      />
+
+      {/* one-shot pulse each time a new skill lands */}
+      {shown && !reduced && (
+        <motion.div
+          key={idx}
+          className="pointer-events-none absolute bottom-5 left-1/2 -ml-[90px] h-[180px] w-[180px] rounded-full border-2"
+          style={{ borderColor: cat.color }}
+          initial={{ scale: 1, opacity: 0.6 }}
+          animate={{ scale: 1.6, opacity: 0 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+        />
+      )}
+
+      {/* hub */}
+      <div
+        className="absolute bottom-5 left-1/2 z-10 flex h-[180px] w-[180px] -translate-x-1/2 flex-col items-center justify-center gap-1 rounded-full border backdrop-blur-xl"
+        style={{
+          background: `rgba(${cat.rgb},0.10)`,
+          borderColor: `rgba(${cat.rgb},0.35)`,
+          color: cat.color,
+          boxShadow: "0 18px 60px rgba(2,6,23,0.06)",
+        }}
+      >
+        <div className="text-3xl">{cat.hubIcon}</div>
+        <div className="text-center font-syne text-[10px] font-semibold leading-snug tracking-[0.18em]">
+          {cat.hubLines[0]}
+          <br />
+          {cat.hubLines[1]}
+        </div>
+      </div>
+
+      {/* active skill */}
+      <div className="pointer-events-none absolute bottom-[220px] left-1/2 z-20 flex w-48 -translate-x-1/2 flex-col items-center gap-2">
+        <div
+          className={[
+            "whitespace-nowrap rounded-md border px-3.5 py-1 font-mono text-[11px] transition-all duration-300",
+            shown ? "translate-y-0 opacity-100" : "-translate-y-1.5 opacity-0",
+          ].join(" ")}
+          style={{
+            color: cat.color,
+            borderColor: `rgba(${cat.rgb},0.30)`,
+            background: `rgba(${cat.rgb},0.08)`,
+          }}
+        >
+          {current.name}
+        </div>
+        <div
+          className={[
+            "flex h-16 w-16 items-center justify-center rounded-2xl border text-2xl transition-all duration-300",
+            shown ? "scale-100 opacity-100" : "scale-90 opacity-0",
+          ].join(" ")}
+          style={{
+            background: `rgba(${cat.rgb},0.12)`,
+            borderColor: `rgba(${cat.rgb},0.40)`,
+            boxShadow: `0 0 24px rgba(${cat.rgb},0.25), 0 0 8px rgba(${cat.rgb},0.16)`,
+          }}
+        >
+          {current.icon}
+        </div>
+      </div>
+
+      {/* flyers */}
+      {moving && (
+        <Flyer
+          icon={current.icon}
+          rgb={cat.rgb}
+          startDeg={-90}
+          endDeg={90}
+          entering={false}
+        />
+      )}
+      {moving && showIncoming && (
+        <Flyer
+          icon={incoming.icon}
+          rgb={cat.rgb}
+          startDeg={190}
+          endDeg={270}
+          entering
+          onDone={finish}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ---------------- Section ---------------- */
 
 export default function Skills() {
-  const { t, locale } = useLang() as { t: Translation; locale: "en" | "fi" };
+  const { t, locale: rawLocale } = useLang();
+  const locale: Locale = rawLocale === "fi" ? "fi" : "en";
 
-  const skillCategories: SkillCategoryConfig[] = useMemo(
-    () => [
-      {
-        id: "web",
-        labelKey: "web",
-        number: "01",
-        color: "#06b6d4",
-        rgb: "6,182,212",
-        descriptionKey: "web",
-        pills: ["React", "Next.js", "JavaScript", "HTML5", "CSS3", "Bootstrap"],
-        skills: [
-          { name: "React", icon: "⚛️" },
-          { name: "Next.js", icon: "▲" },
-          { name: "JavaScript", icon: "📜" },
-          { name: "HTML5", icon: "🌐" },
-          { name: "CSS3", icon: "🎨" },
-          { name: "Bootstrap", icon: "🅱️" },
-        ],
-      },
-      {
-        id: "data",
-        labelKey: "data",
-        number: "02",
-        color: "#22c55e",
-        rgb: "34,197,94",
-        descriptionKey: "data",
-        pills: [
-          "Python",
-          "Scikit-learn",
-          "Pandas",
-          "SQL",
-          "R",
-          "Tableau",
-          "Matplotlib",
-          "Google Sheets",
-        ],
-        skills: [
-          { name: "Python", icon: "🐍" },
-          { name: "Scikit-learn", icon: "🤖" },
-          { name: "Pandas", icon: "🐼" },
-          { name: "SQL", icon: "🗄️" },
-          { name: "R", icon: "📈" },
-          { name: "Tableau", icon: "📉" },
-          { name: "Matplotlib", icon: "📊" },
-          { name: "Google Sheets", icon: "📋" },
-        ],
-      },
-      {
-        id: "tools",
-        labelKey: "tools",
-        number: "03",
-        color: "#a855f7",
-        rgb: "168,85,247",
-        descriptionKey: "tools",
-        pills: [
-          "GitHub",
-          "Linux",
-          "Jupyter",
-          "Azure AD",
-          "Active Directory",
-          "VMware",
-          "ServiceNow",
-          "Office365",
-        ],
-        skills: [
-          { name: "GitHub", icon: "🐙" },
-          { name: "Linux", icon: "🐧" },
-          { name: "Jupyter", icon: "📓" },
-          { name: "Azure AD", icon: "☁️" },
-          { name: "Active Directory", icon: "🖥️" },
-          { name: "VMware", icon: "⚙️" },
-          { name: "ServiceNow", icon: "🎫" },
-          { name: "Office365", icon: "📧" },
-        ],
-      },
-    ],
-    [],
-  );
+  const [activeId, setActiveId] = useState<CatId>("web");
+  const [achievementsUnlocked, setAchievementsUnlocked] = useState(false);
+  const [overlayActive, setOverlayActive] = useState(false);
+  const audioRef = useRef<HTMLAudioElement>(null);
 
-  const catLabel = (id: CatId) => {
-    const fromT = t.skills.cats?.[id];
-    return (
-      fromT ??
-      (id === "web"
-        ? "Web & Frontend"
-        : id === "data"
-          ? "Data & ML"
-          : "Tools & IT")
-    );
-  };
+  const activeCat = CATEGORIES.find((c) => c.id === activeId) ?? CATEGORIES[0];
 
-  const catDesc = (id: CatId) => {
-    const fromT = t.skills.categoryDescriptions?.[id];
-    return (
-      fromT ??
-      (id === "web"
-        ? "Building fast, modern interfaces — from React components to full Next.js applications."
-        : id === "data"
-          ? "From raw datasets to trained models, working with supervised learning and real-world data."
-          : "Comfortable in enterprise IT environments — from Azure AD and Linux to everyday tooling.")
-    );
-  };
-
-  const unlockedBadge =
-    t.skills.unlocked_badge ??
-    (locale === "fi" ? "AVAA PALKINNOT" : "UNLOCKED BY SKILLS");
-
-  const unlockedBody =
-    t.skills.unlocked_body ??
-    (locale === "fi"
-      ? 'Kuin "kuukauden työntekijä" -seinä — mutta tekniikalle. Klikkaa alta nähdäksesi palkinnot, apurahat ja tQit-tarinan.'
-      : 'Like the "Employee of the Month" wall — but for tech. Click below to see the awards, scholarships and the tQit story these skills have earned.');
-
-  const unlockedCta =
-    t.skills.unlocked_cta ??
-    (locale === "fi"
-      ? "Näytä palkinnot & apurahat"
-      : "Show my awards & scholarships");
+  const catLabel = (id: CatId) => LABELS[locale][id];
+  const catDesc = (id: CatId) => DESCRIPTIONS[locale][id];
 
   const awardItems = useMemo(
     () => [
@@ -211,293 +391,34 @@ export default function Skills() {
       body:
         locale === "fi"
           ? "tQit digitalisoi jonottamisen: asiakkaat liittyvät jonoon sovelluksella ja seuraavat paikkaansa reaaliajassa. Henkilökunta näkee jonotilanteen ja kutsuu seuraavan yhdellä painalluksella. Toimin projektipäällikkönä ja front-end -suunnittelijana — koordinoin tiimiä, vedin sprinttejä Scrum/Kanbanilla ja suunnittelin käyttökokemuksen HTML/CSS/JS:llä."
-          : "The tQit system digitalises queues: users join through an app and track their position in real time. Staff see a live overview and call the next person with a tap. I led the project in a hybrid product owner + front-end designer role — coordinating the team, running sprints with Scrum/Kanban, and designing the UI with HTML/CSS/JavaScript.",
+          : "The tQit system is a software solution that digitalises and improves the experience of entering a queue for an establishment. Users join through the app and track their position in real time. Staff see a live overview and call the next person with a tap. I led the project in a hybrid product owner and front-end designer role — coordinating the team, running sprints with Scrum/Kanban, and designing the user journey and interface using HTML, CSS and JavaScript.",
     }),
     [locale],
   );
 
-  const [achievementsUnlocked, setAchievementsUnlocked] = useState<boolean>(
-    () => {
-      if (typeof window === "undefined") return false;
-      return window.sessionStorage.getItem("skillsAwardsSeen") === "1";
-    },
-  );
-
-  const [hasUnlockedOnce, setHasUnlockedOnce] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
-    return window.sessionStorage.getItem("skillsAwardsSeen") === "1";
-  });
-
-  const [overlayActive, setOverlayActive] = useState(false);
-
+  // Remember within this browser session that the awards were already unlocked
   useEffect(() => {
-    if (!hasUnlockedOnce || typeof window === "undefined") return;
-    window.sessionStorage.setItem("skillsAwardsSeen", "1");
-  }, [hasUnlockedOnce]);
+    try {
+      if (window.sessionStorage.getItem(SESSION_KEY) === "1")
+        setAchievementsUnlocked(true);
+    } catch {
+      /* storage unavailable: just start locked */
+    }
+  }, []);
 
-  useEffect(() => {
-    const CATS = skillCategories.reduce<Record<CatId, SkillCategoryConfig>>(
-      (acc, cat) => {
-        acc[cat.id] = cat;
-        return acc;
-      },
-      {} as Record<CatId, SkillCategoryConfig>,
-    );
-
-    const state: Record<
-      CatId,
-      { idx: number; busy: boolean; timer: number | null }
-    > = {
-      web: { idx: 0, busy: false, timer: null },
-      data: { idx: 0, busy: false, timer: null },
-      tools: { idx: 0, busy: false, timer: null },
-    };
-
-    let currentCat: CatId | null = null;
-
-    const HUB_CX = 170;
-    const HUB_CY = 310;
-    const ORBIT_R = 130;
-    const ANIM_DUR = 560;
-    const PAUSE_DUR = 2400;
-
-    const easeInOutCubic = (x: number) =>
-      x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
-
-    const anglePos = (deg: number) => {
-      const rad = (deg * Math.PI) / 180;
-      return {
-        x: HUB_CX + ORBIT_R * Math.cos(rad),
-        y: HUB_CY + ORBIT_R * Math.sin(rad),
-      };
-    };
-
-    const initCat = (id: CatId) => {
-      const cat = CATS[id];
-      const hub = document.getElementById(`hub-${id}`);
-      const oring = document.getElementById(`oring-${id}`);
-      const aicon = document.getElementById(`aicon-${id}`);
-      const ncard = document.getElementById(`name-${id}`);
-      if (!hub || !oring || !aicon || !ncard) return;
-
-      hub.setAttribute(
-        "style",
-        [
-          `background: rgba(${cat.rgb},0.10)`,
-          `border-color: rgba(${cat.rgb},0.35)`,
-          `color: ${cat.color}`,
-          `box-shadow: 0 18px 60px rgba(2,6,23,0.06)`,
-        ].join(";"),
-      );
-      oring.style.borderColor = `rgba(${cat.rgb},0.10)`;
-      aicon.setAttribute(
-        "style",
-        [
-          `background: rgba(${cat.rgb},0.12)`,
-          `border-color: rgba(${cat.rgb},0.40)`,
-          `box-shadow: 0 0 24px rgba(${cat.rgb},0.25), 0 0 8px rgba(${cat.rgb},0.16)`,
-        ].join(";"),
-      );
-      ncard.setAttribute(
-        "style",
-        [
-          `color: ${cat.color}`,
-          `border-color: rgba(${cat.rgb},0.30)`,
-          `background: rgba(${cat.rgb},0.08)`,
-        ].join(";"),
-      );
-    };
-
-    const triggerHubPulse = (id: CatId) => {
-      const cat = CATS[id];
-      const pulse = document.getElementById(`pulse-${id}`);
-      if (!pulse) return;
-      pulse.setAttribute(
-        "style",
-        `border-width: 2px; border-style: solid; border-color: ${cat.color};`,
-      );
-      pulse.classList.add("animate-ping");
-      setTimeout(() => pulse.classList.remove("animate-ping"), 600);
-    };
-
-    const showActive = (id: CatId, index: number) => {
-      const cat = CATS[id];
-      const skill = cat.skills[index];
-      const aicon = document.getElementById(`aicon-${id}`);
-      const ncard = document.getElementById(`name-${id}`);
-      if (!aicon || !ncard) return;
-      aicon.textContent = skill.icon;
-      ncard.textContent = skill.name;
-      aicon.style.opacity = "1";
-      aicon.style.transform = "scale(1)";
-      ncard.style.opacity = "1";
-      ncard.style.transform = "translateY(0)";
-      triggerHubPulse(id);
-    };
-
-    const hideActive = (id: CatId) => {
-      const aicon = document.getElementById(`aicon-${id}`);
-      const ncard = document.getElementById(`name-${id}`);
-      if (!aicon || !ncard) return;
-      aicon.style.opacity = "0";
-      aicon.style.transform = "scale(0.92)";
-      ncard.style.opacity = "0";
-      ncard.style.transform = "translateY(-3px)";
-    };
-
-    const createFlyer = (
-      id: CatId,
-      emoji: string,
-      startDeg: number,
-      endDeg: number,
-      entering: boolean,
-      onDone?: () => void,
-    ) => {
-      const wrap = document.getElementById(`wrap-${id}`);
-      const cat = CATS[id];
-      if (!wrap) return;
-
-      const el = document.createElement("div");
-      el.className =
-        "absolute w-14 h-14 rounded-2xl flex items-center justify-center text-2xl border pointer-events-none z-20 bg-white/70 dark:bg-white/5 backdrop-blur";
-      el.textContent = emoji;
-      el.style.background = `rgba(${cat.rgb},0.10)`;
-      el.style.borderColor = `rgba(${cat.rgb},0.22)`;
-      wrap.appendChild(el);
-
-      const startPos = anglePos(startDeg);
-      el.style.left = `${startPos.x - 28}px`;
-      el.style.top = `${startPos.y - 28}px`;
-
-      const startTime = performance.now();
-
-      const frame = (now: number) => {
-        const raw = Math.min((now - startTime) / ANIM_DUR, 1);
-        const eased = easeInOutCubic(raw);
-        const currentAngle = startDeg + (endDeg - startDeg) * eased;
-        const pos = anglePos(currentAngle);
-
-        el.style.left = `${pos.x - 28}px`;
-        el.style.top = `${pos.y - 28}px`;
-
-        const relY = (pos.y - (HUB_CY - ORBIT_R)) / (2 * ORBIT_R);
-        const depth = entering ? relY : 1 - relY;
-
-        const opacity = entering
-          ? Math.max(0, 1 - depth * 1.2)
-          : Math.max(0, depth * 1.2 - 0.2);
-        const blur = entering ? depth * 3.2 : (1 - depth) * 3.2;
-        const scale = entering
-          ? 0.72 + (1 - depth) * 0.22
-          : 0.72 + depth * 0.22;
-
-        el.style.opacity = String(opacity);
-        el.style.filter = blur > 0.3 ? `blur(${blur.toFixed(1)}px)` : "none";
-        el.style.transform = `scale(${scale.toFixed(3)})`;
-
-        if (raw < 1) requestAnimationFrame(frame);
-        else {
-          el.remove();
-          onDone?.();
-        }
-      };
-
-      requestAnimationFrame(frame);
-    };
-
-    const cycle = (id: CatId) => {
-      const s = state[id];
-      const cat = CATS[id];
-      if (!s || s.busy) return;
-
-      s.busy = true;
-      const currIdx = s.idx;
-      const nextIdx = (currIdx + 1) % cat.skills.length;
-
-      const currSkill = cat.skills[currIdx];
-      const nextSkill = cat.skills[nextIdx];
-
-      hideActive(id);
-
-      const TOP = -90;
-      const EXIT_END = 90;
-      const ENTER_START = 190;
-
-      createFlyer(id, currSkill.icon, TOP, EXIT_END, false);
-
-      setTimeout(() => {
-        createFlyer(id, nextSkill.icon, ENTER_START, 270, true, () => {
-          s.idx = nextIdx;
-          s.busy = false;
-          showActive(id, nextIdx);
-          s.timer = window.setTimeout(() => cycle(id), PAUSE_DUR);
-        });
-      }, 60);
-    };
-
-    const switchCat = (id: CatId) => {
-      if (currentCat && state[currentCat]) {
-        const s = state[currentCat];
-        if (s.timer != null) window.clearTimeout(s.timer);
-        s.busy = false;
-        hideActive(currentCat);
-      }
-
-      const colors: Record<CatId, string> = {
-        web: "#06b6d4",
-        data: "#22c55e",
-        tools: "#a855f7",
-      };
-
-      (["web", "data", "tools"] as CatId[]).forEach((c) => {
-        const panel = document.getElementById(`cat-${c}`);
-        const tab = document.getElementById(`tab-${c}`);
-        panel?.classList.add("hidden");
-        if (tab) {
-          tab.style.background = "transparent";
-          tab.style.color = "#64748b";
-          tab.style.fontWeight = "400";
-          tab.style.boxShadow = "none";
-          tab.style.transform = "translateY(0)";
-        }
-      });
-
-      const activePanel = document.getElementById(`cat-${id}`);
-      const activeTab = document.getElementById(`tab-${id}`);
-      activePanel?.classList.remove("hidden");
-      if (activeTab) {
-        activeTab.style.background = colors[id];
-        activeTab.style.color = "#000";
-        activeTab.style.fontWeight = "600";
-        activeTab.style.boxShadow =
-          "0 0 0 1px rgba(0,0,0,0.12), 0 10px 25px rgba(2,6,23,0.10)";
-        activeTab.style.transform = "translateY(-1px)";
-      }
-
-      currentCat = id;
-      showActive(id, state[id].idx);
-      state[id].timer = window.setTimeout(() => cycle(id), PAUSE_DUR);
-    };
-
-    (["web", "data", "tools"] as CatId[]).forEach(initCat);
-    switchCat("web");
-
-    window.__skillsSwitchCat__ = switchCat;
-
-    return () => {
-      (["web", "data", "tools"] as CatId[]).forEach((id) => {
-        const timer = state[id].timer;
-        if (timer != null) window.clearTimeout(timer);
-      });
-      window.__skillsSwitchCat__ = undefined;
-    };
-  }, [skillCategories]);
+  const handleOverlayDone = useCallback(() => {
+    setOverlayActive(false);
+    setAchievementsUnlocked(true);
+    try {
+      window.sessionStorage.setItem(SESSION_KEY, "1");
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   const triggerCelebration = () => {
     if (overlayActive) return;
-    const audio = document.getElementById(
-      "award-sound",
-    ) as HTMLAudioElement | null;
+    const audio = audioRef.current;
     if (audio) {
       audio.currentTime = 0;
       audio.play().catch(() => {});
@@ -505,194 +426,167 @@ export default function Skills() {
     setOverlayActive(true);
   };
 
+  const onTabKeyDown = (e: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+    e.preventDefault();
+    const i = CATEGORIES.findIndex((c) => c.id === activeId);
+    const step = e.key === "ArrowRight" ? 1 : CATEGORIES.length - 1;
+    const next = CATEGORIES[(i + step) % CATEGORIES.length];
+    setActiveId(next.id);
+    document.getElementById(`skills-tab-${next.id}`)?.focus();
+  };
+
   return (
     <section
       id="skills"
-      className="py-24 relative overflow-hidden bg-slate-50 text-slate-900 dark:bg-[#080808] dark:text-white"
+      className="relative overflow-hidden bg-slate-50 py-24 text-slate-900 dark:bg-[#080808] dark:text-white"
     >
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-64 h-64 bg-cyan-500/10 dark:bg-cyan-500/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 right-1/4 w-72 h-72 bg-emerald-500/10 dark:bg-emerald-500/10 rounded-full blur-3xl" />
+      {/* background glows */}
+      <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+        <div className="absolute left-1/4 top-0 h-64 w-64 rounded-full bg-cyan-500/10 blur-3xl" />
+        <div className="absolute bottom-0 right-1/4 h-72 w-72 rounded-full bg-emerald-500/10 blur-3xl" />
       </div>
 
-      <div className="max-w-5xl mx-auto px-6 md:px-10 lg:px-0 relative z-10">
-        <div className="flex items-center gap-4 mb-2">
-          <span className="text-cyan-600 dark:text-cyan-400 text-xs font-mono tracking-[0.25em]">
+      <div className="relative z-10 mx-auto max-w-5xl px-6 md:px-10 lg:px-0">
+        {/* heading */}
+        <div className="mb-2 flex items-center gap-4">
+          <span className="font-mono text-xs tracking-[0.25em] text-cyan-600 dark:text-cyan-400">
             {t.skills.section}
           </span>
-          <div className="w-10 h-px bg-cyan-500/80" />
-          <h2
-            className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white"
-            style={{ fontFamily: "var(--font-syne)" }}
-          >
+          <div className="h-px w-10 bg-cyan-500/80" />
+          <h2 className="font-syne text-3xl font-bold text-slate-900 dark:text-white md:text-4xl">
             {t.skills.title}
           </h2>
-          <div className="flex-1 h-px bg-slate-200 dark:bg-zinc-800" />
+          <div className="h-px flex-1 bg-slate-200 dark:bg-zinc-800" />
         </div>
 
-        <p className="text-xs md:text-sm font-mono text-slate-600 dark:text-zinc-400 max-w-xl mb-6">
+        <p className="mb-6 max-w-xl font-mono text-xs text-slate-600 dark:text-zinc-400 md:text-sm">
           {t.skills.subtitle}
         </p>
 
+        {/* tabs */}
         <div className="mb-8">
-          <div className="inline-flex items-center rounded-lg border border-slate-200 dark:border-zinc-800 bg-white/70 dark:bg-black/40 backdrop-blur px-1 py-1 gap-1">
-            {skillCategories.map((cat) => (
-              <button
-                key={cat.id}
-                id={`tab-${cat.id}`}
-                className="px-4 py-1.5 text-[11px] font-mono text-slate-600 dark:text-zinc-500 rounded-md transition-all duration-200 hover:bg-slate-100/70 dark:hover:bg-white/5"
-                onClick={() => window.__skillsSwitchCat__?.(cat.id)}
-                type="button"
-              >
-                {catLabel(cat.labelKey)}
-              </button>
-            ))}
+          <div
+            role="tablist"
+            onKeyDown={onTabKeyDown}
+            className="inline-flex flex-wrap items-center gap-1 rounded-lg border border-slate-200 bg-white/70 p-1 backdrop-blur dark:border-zinc-800 dark:bg-black/40"
+          >
+            {CATEGORIES.map((cat) => {
+              const active = cat.id === activeId;
+              return (
+                <button
+                  key={cat.id}
+                  id={`skills-tab-${cat.id}`}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  aria-controls="skills-panel"
+                  tabIndex={active ? 0 : -1}
+                  onClick={() => setActiveId(cat.id)}
+                  className={[
+                    "rounded-md px-4 py-1.5 font-mono text-[11px] transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500",
+                    active
+                      ? "-translate-y-px font-semibold text-black shadow-[0_0_0_1px_rgba(0,0,0,0.12),0_10px_25px_rgba(2,6,23,0.10)]"
+                      : "text-slate-600 hover:bg-slate-100/70 dark:text-zinc-500 dark:hover:bg-white/5",
+                  ].join(" ")}
+                  style={active ? { background: cat.color } : undefined}
+                >
+                  {catLabel(cat.id)}
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        {skillCategories.map((cat) => (
-          <div
-            key={cat.id}
-            id={`cat-${cat.id}`}
-            className={`flex flex-col md:flex-row items-center md:items-center md:justify-between gap-8 lg:gap-16 xl:gap-24 ${
-              cat.id === "web" ? "" : "hidden"
-            }`}
-          >
+        {/* wheel + text (only the active category is mounted) */}
+        <div
+          id="skills-panel"
+          role="tabpanel"
+          aria-labelledby={`skills-tab-${activeCat.id}`}
+          className="flex flex-col items-center gap-8 md:flex-row md:justify-between lg:gap-16 xl:gap-24"
+        >
+          <SkillWheel key={activeCat.id} cat={activeCat} />
+
+          <div className="mt-8 flex-1 md:mt-0 md:flex md:flex-col md:justify-center md:pl-10 lg:pl-16 xl:pl-24">
             <div
-              id={`wrap-${cat.id}`}
-              className="relative w-[340px] h-[420px] flex-shrink-0 mx-auto md:mx-0 md:mr-auto -mt-2 md:-mt-4"
+              className="mb-2 font-syne text-6xl font-black text-transparent md:text-7xl"
+              style={{
+                WebkitTextStrokeWidth: "1.7px",
+                WebkitTextStrokeColor: activeCat.color,
+                filter: "drop-shadow(0 0 20px rgba(2,6,23,0.10))",
+              }}
+              aria-hidden="true"
             >
-              <div
-                id={`oring-${cat.id}`}
-                className="absolute left-1/2 bottom-5 -translate-x-1/2 w-[320px] h-[320px] rounded-full border border-dashed border-black/10 dark:border-white/5 pointer-events-none"
-              />
-              <div
-                id={`pulse-${cat.id}`}
-                className="absolute left-1/2 bottom-5 -translate-x-1/2 w-[180px] h-[180px] rounded-full pointer-events-none z-0"
-              />
-              <div
-                id={`hub-${cat.id}`}
-                className="absolute left-1/2 bottom-5 -translate-x-1/2 w-[180px] h-[180px] rounded-full flex flex-col items-center justify-center border z-10 gap-1 bg-white/70 dark:bg-white/5 backdrop-blur-xl transition-shadow"
-              >
-                <div className="text-3xl">
-                  {cat.id === "web" ? "💻" : cat.id === "data" ? "📊" : "🛠️"}
-                </div>
-                <div
-                  className="text-[10px] font-semibold tracking-[0.18em] text-center leading-snug"
-                  style={{ fontFamily: "var(--font-syne)" }}
+              {activeCat.number}
+            </div>
+
+            <h3
+              className="mb-4 font-syne text-2xl font-bold md:text-3xl"
+              style={{ color: activeCat.color }}
+            >
+              {catLabel(activeCat.id)}
+            </h3>
+
+            <p className="mb-6 max-w-md font-mono text-xs text-slate-600 dark:text-zinc-400 md:text-sm">
+              {catDesc(activeCat.id)}
+            </p>
+
+            <ul className="flex flex-wrap gap-2">
+              {activeCat.skills.map((skill) => (
+                <li
+                  key={skill.name}
+                  className="rounded-full border px-3 py-1.5 font-mono text-[11px]"
+                  style={{
+                    borderColor: activeCat.color + "33",
+                    color: activeCat.color,
+                    background: activeCat.color + "10",
+                  }}
                 >
-                  {cat.id === "web" ? (
-                    <>
-                      WEB
-                      <br />
-                      STACK
-                    </>
-                  ) : cat.id === "data" ? (
-                    <>
-                      DATA
-                      <br />
-                      &amp; ML
-                    </>
-                  ) : (
-                    <>
-                      IT
-                      <br />
-                      STACK
-                    </>
-                  )}
-                </div>
-              </div>
-
-              <div
-                id={`spot-${cat.id}`}
-                className="absolute left-1/2 bottom-[220px] -translate-x-1/2 w-20 flex flex-col items-center gap-2 pointer-events-none z-20"
-              >
-                <div
-                  id={`name-${cat.id}`}
-                  className="px-3.5 py-1 rounded-md border text-[11px] font-mono bg-white/80 dark:bg-white/5 opacity-0 -translate-y-1 transition-all duration-300"
-                />
-                <div
-                  id={`aicon-${cat.id}`}
-                  className="w-16 h-16 rounded-2xl border flex items-center justify-center text-2xl opacity-0 scale-90 transition-all duration-300"
-                />
-              </div>
-            </div>
-
-            <div className="flex-1 mt-8 md:mt-0 md:pl-10 lg:pl-16 xl:pl-24 md:flex md:flex-col md:justify-center">
-              <div
-                className="text-6xl md:text-7xl font-black mb-2 text-transparent"
-                style={{
-                  fontFamily: "var(--font-syne)",
-                  WebkitTextStrokeWidth: "1.7px",
-                  WebkitTextStrokeColor: cat.color,
-                  filter: "drop-shadow(0 0 20px rgba(2,6,23,0.10))",
-                }}
-              >
-                {cat.number}
-              </div>
-
-              <h3
-                className="text-2xl md:text-3xl font-bold mb-4"
-                style={{ color: cat.color, fontFamily: "var(--font-syne)" }}
-              >
-                {catLabel(cat.labelKey)}
-              </h3>
-
-              <p className="text-xs md:text-sm font-mono text-slate-600 dark:text-zinc-400 mb-6 max-w-md">
-                {catDesc(cat.descriptionKey)}
-              </p>
-
-              <div className="flex flex-wrap gap-2">
-                {cat.pills.map((pill) => (
-                  <span
-                    key={pill}
-                    className="text-[11px] px-3 py-1.5 rounded-full border font-mono"
-                    style={{
-                      borderColor: cat.color + "33",
-                      color: cat.color,
-                      background: cat.color + "10",
-                    }}
-                  >
-                    {pill}
-                  </span>
-                ))}
-              </div>
-            </div>
+                  {skill.name}
+                </li>
+              ))}
+            </ul>
           </div>
-        ))}
+        </div>
 
         <div className="mt-16 md:mt-20" />
 
         {!achievementsUnlocked && (
           <motion.div
-            className="mb-10 flex flex-col items-center text-center gap-3"
+            className="mb-10 flex flex-col items-center gap-3 text-center"
             initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-120px" }}
+            viewport={VIEWPORT}
             transition={{ duration: 0.5, ease: "easeOut" }}
           >
-            <p className="text-[11px] md:text-xs font-mono text-cyan-600 dark:text-cyan-400 tracking-[0.24em] uppercase">
-              {unlockedBadge}
+            <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-cyan-600 dark:text-cyan-400 md:text-xs">
+              {locale === "fi" ? "avaa palkinnot" : "unlocked by skills"}
             </p>
-            <p className="text-xs md:text-sm font-mono text-slate-600 dark:text-zinc-400 max-w-md">
-              {unlockedBody}
+            <p className="max-w-md font-mono text-xs text-slate-600 dark:text-zinc-400 md:text-sm">
+              {locale === "fi"
+                ? "Kuin “kuukauden työntekijä” -seinä — mutta tekniikalle. Klikkaa nähdäksesi palkinnot, apurahat ja tQit-tarinan."
+                : "Like the “Employee of the Month” wall — but for tech. Click below to see the awards, scholarships and tQit story these skills have earned."}
             </p>
             <motion.button
+              type="button"
               onClick={triggerCelebration}
               whileHover={{ scale: 1.05, y: -1 }}
               whileTap={{ scale: 0.97, y: 0 }}
-              className="mt-2 inline-flex items-center justify-center px-6 py-2.5 rounded-full bg-gradient-to-r from-cyan-500 via-emerald-400 to-amber-400 text-black text-xs md:text-sm font-mono font-semibold shadow-lg shadow-cyan-500/25"
-              type="button"
+              className="mt-2 inline-flex items-center justify-center rounded-full bg-gradient-to-r from-cyan-500 via-emerald-400 to-amber-400 px-6 py-2.5 font-mono text-xs font-semibold text-black shadow-lg shadow-cyan-500/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 md:text-sm"
             >
-              {unlockedCta}
-              <span className="ml-2">⭐</span>
+              {locale === "fi"
+                ? "Näytä palkinnot & apurahat"
+                : "Show my awards & scholarships"}
+              <span className="ml-2" aria-hidden="true">
+                ⭐
+              </span>
             </motion.button>
           </motion.div>
         )}
 
         {achievementsUnlocked && (
           <AchievementsBlock
-            t={t.skills}
+            t={t}
             locale={locale}
             awardItems={awardItems}
             highlightProject={highlightProject}
@@ -703,26 +597,16 @@ export default function Skills() {
 
       <AnimatePresence>
         {overlayActive && (
-          <AwardsOverlay
-            t={t.skills}
-            locale={locale}
-            onComplete={() => {
-              setOverlayActive(false);
-              setAchievementsUnlocked(true);
-              setHasUnlockedOnce(true);
-            }}
-          />
+          <AwardsOverlay t={t} locale={locale} onComplete={handleOverlayDone} />
         )}
       </AnimatePresence>
 
-      <audio id="award-sound" src="/award.mp3" preload="auto" />
-
-      <div role="status" aria-live="polite" className="sr-only">
-        {achievementsUnlocked ? "Achievements unlocked" : ""}
-      </div>
+      <audio ref={audioRef} src="/award.mp3" preload="none" />
     </section>
   );
 }
+
+/* ---------------- Overlay + achievements ---------------- */
 
 function AwardsOverlay({
   onComplete,
@@ -730,20 +614,37 @@ function AwardsOverlay({
   locale,
 }: {
   onComplete: () => void;
-  t: SkillsTranslation;
-  locale: "en" | "fi";
+  t: Translations;
+  locale: Locale;
 }) {
+  const doneRef = useRef(onComplete);
+
   useEffect(() => {
-    const timer = setTimeout(() => onComplete(), 3600);
-    return () => clearTimeout(timer);
-  }, [onComplete]);
+    doneRef.current = onComplete;
+  });
+
+  // Auto-close after 3.6s, or on Escape. The ref keeps parent re-renders from resetting the timer.
+  useEffect(() => {
+    const timer = setTimeout(() => doneRef.current(), 3600);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") doneRef.current();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, []);
 
   return (
     <motion.div
+      role="dialog"
+      aria-label={locale === "fi" ? "Kohokohta avattu" : "Highlight unlocked"}
       className="fixed inset-0 z-[60] flex items-center justify-center"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
+      onClick={onComplete}
     >
       <motion.div
         className="absolute inset-0 bg-black/70 backdrop-blur-sm"
@@ -751,17 +652,20 @@ function AwardsOverlay({
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
       />
-      <div className="absolute w-72 h-72 rounded-full bg-amber-400/20 blur-3xl" />
+      <div
+        className="absolute h-72 w-72 rounded-full bg-amber-400/20 blur-3xl"
+        aria-hidden="true"
+      />
 
       <motion.div
-        className="relative z-10 rounded-3xl border border-amber-300/50 bg-gradient-to-br from-amber-100 via-amber-50 to-amber-200 dark:from-zinc-900 dark:via-zinc-900 dark:to-amber-900/10 px-8 py-6 shadow-[0_18px_60px_rgba(0,0,0,0.65)] max-w-md text-center"
+        className="relative z-10 max-w-md rounded-3xl border border-amber-300/50 bg-gradient-to-br from-amber-100 via-amber-50 to-amber-200 px-8 py-6 text-center shadow-[0_18px_60px_rgba(0,0,0,0.65)] dark:from-zinc-900 dark:via-zinc-900 dark:to-amber-900/10"
         initial={{ scale: 0.4, opacity: 0, rotate: -6 }}
         animate={{ scale: 1, opacity: 1, rotate: 0 }}
         exit={{ scale: 0.8, opacity: 0, rotate: 3 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
       >
         <motion.div
-          className="mx-auto mb-3 w-14 h-14 rounded-full bg-gradient-to-br from-amber-400 via-yellow-300 to-emerald-300 flex items-center justify-center shadow-[0_0_40px_rgba(253,224,71,0.7)]"
+          className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 via-yellow-300 to-emerald-300 shadow-[0_0_40px_rgba(253,224,71,0.7)]"
           initial={{ scale: 0, rotate: -40 }}
           animate={{ scale: 1, rotate: 0 }}
           transition={{
@@ -771,11 +675,13 @@ function AwardsOverlay({
             damping: 18,
           }}
         >
-          <span className="text-2xl">⭐</span>
+          <span className="text-2xl" aria-hidden="true">
+            ⭐
+          </span>
         </motion.div>
 
         <motion.p
-          className="text-[11px] font-mono tracking-[0.24em] text-amber-700/80 dark:text-amber-200 uppercase mb-1"
+          className="mb-1 font-mono text-[11px] uppercase tracking-[0.24em] text-amber-700/80 dark:text-amber-200"
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.25, duration: 0.3 }}
@@ -784,17 +690,16 @@ function AwardsOverlay({
         </motion.p>
 
         <motion.h3
-          className="text-lg font-semibold text-amber-900 dark:text-amber-100 mb-1"
-          style={{ fontFamily: "var(--font-syne)" }}
+          className="mb-1 font-syne text-lg font-semibold text-amber-900 dark:text-amber-100"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.32, duration: 0.35 }}
         >
-          {t.awards.best} — tQit
+          {t.skills.awards.best} — tQit
         </motion.h3>
 
         <motion.p
-          className="text-xs font-mono text-amber-900/80 dark:text-amber-100/90 leading-relaxed"
+          className="font-mono text-xs leading-relaxed text-amber-900/80 dark:text-amber-100/90"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4, duration: 0.35 }}
@@ -805,7 +710,7 @@ function AwardsOverlay({
         </motion.p>
 
         <motion.p
-          className="mt-3 text-[11px] font-mono text-amber-800/80 dark:text-amber-200"
+          className="mt-3 font-mono text-[11px] text-amber-800/80 dark:text-amber-200"
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.55, duration: 0.3 }}
@@ -827,128 +732,104 @@ function AchievementsBlock({
   highlightProject,
 }: {
   onReplay: () => void;
-  t: SkillsTranslation;
-  locale: "en" | "fi";
+  t: Translations;
+  locale: Locale;
   awardItems: { year: string; type: string; title: string; body: string }[];
   highlightProject: { name: string; body: string };
 }) {
+  const cardIn = (delay: number, y = -50) => ({
+    initial: { opacity: 0, y, rotate: -2, scale: 0.96 },
+    whileInView: { opacity: 1, y: 0, rotate: 0, scale: 1 },
+    viewport: VIEWPORT,
+    transition: { type: "spring" as const, stiffness: 260, damping: 20, delay },
+  });
+
   return (
     <motion.div
       className="mt-10"
       initial={{ opacity: 0, y: 32 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-120px" }}
+      viewport={VIEWPORT}
       transition={{ duration: 0.6, ease: "easeOut" }}
     >
-      <div className="relative mb-8">
+      <div className="relative mb-8" aria-hidden="true">
         <motion.div
           initial={{ scaleX: 0 }}
           whileInView={{ scaleX: 1 }}
-          viewport={{ once: true, margin: "-120px" }}
+          viewport={VIEWPORT}
           transition={{ duration: 0.7, ease: "easeOut" }}
-          className="origin-left h-[3px] rounded-full bg-gradient-to-r from-cyan-400 via-emerald-400 to-amber-400 shadow-[0_0_25px_rgba(34,211,238,0.7)]"
+          className="h-[3px] origin-left rounded-full bg-gradient-to-r from-cyan-400 via-emerald-400 to-amber-400 shadow-[0_0_25px_rgba(34,211,238,0.7)]"
         />
       </div>
 
-      <div className="flex items-center gap-4 mb-2">
-        <span className="text-cyan-600 dark:text-cyan-400 text-xs font-mono tracking-[0.25em]">
-          {t.awards.badge}
+      <div className="mb-2 flex items-center gap-4">
+        <span className="font-mono text-xs tracking-[0.25em] text-cyan-600 dark:text-cyan-400">
+          {t.skills.awards.badge}
         </span>
-        <div className="w-10 h-px bg-cyan-500/80" />
-        <h3
-          className="text-xl md:text-2xl font-bold text-slate-900 dark:text-white"
-          style={{ fontFamily: "var(--font-syne)" }}
-        >
-          {t.awards.title}
+        <div className="h-px w-10 bg-cyan-500/80" />
+        <h3 className="font-syne text-xl font-bold text-slate-900 dark:text-white md:text-2xl">
+          {t.skills.awards.title}
         </h3>
         <button
           type="button"
           onClick={onReplay}
-          className="ml-auto text-[11px] font-mono text-cyan-600/80 dark:text-cyan-400/80 hover:text-cyan-700 dark:hover:text-cyan-300 underline-offset-4 hover:underline"
+          className="ml-auto font-mono text-[11px] text-cyan-600/80 underline-offset-4 hover:text-cyan-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 dark:text-cyan-400/80 dark:hover:text-cyan-300"
         >
-          {t.awards.replay}
+          {t.skills.awards.replay}
         </button>
       </div>
 
-      <p className="text-xs md:text-sm font-mono text-slate-600 dark:text-zinc-400 max-w-xl mb-8">
-        {t.awards.desc ??
-          (locale === "fi"
-            ? "Apurahat ja tunnustukset, jotka ovat muokanneet matkaani — tiedekuntapalkinnoista palkittuun tQit-järjestelmään."
-            : "Scholarships and recognitions that shaped my journey — from faculty-level awards to building an award-winning digital queuing system.")}
+      <p className="mb-8 max-w-xl font-mono text-xs text-slate-600 dark:text-zinc-400 md:text-sm">
+        {locale === "fi"
+          ? "Apurahat ja tunnustukset, jotka muovasivat matkaani — tiedekuntatason palkinnoista palkittuun tQit-järjestelmään."
+          : "Scholarships and recognitions that shaped my journey — from faculty-level awards to building an award-winning digital queuing system."}
       </p>
 
-      <div className="grid grid-cols-1 md:grid-cols-[1.1fr_minmax(0,1.2fr)] gap-8 md:gap-12 items-start">
+      <div className="grid grid-cols-1 items-start gap-8 md:grid-cols-[1.1fr_minmax(0,1.2fr)] md:gap-12">
         <motion.div
           initial={{ opacity: 0, x: -24 }}
           whileInView={{ opacity: 1, x: 0 }}
-          viewport={{ once: true, margin: "-120px" }}
+          viewport={VIEWPORT}
           transition={{ duration: 0.5, ease: "easeOut" }}
           className="space-y-6"
         >
           <div className="grid grid-cols-2 gap-4">
             <motion.div
-              initial={{ opacity: 0, y: -50, rotate: -2, scale: 0.96 }}
-              whileInView={{ opacity: 1, y: 0, rotate: 0, scale: 1 }}
-              viewport={{ once: true, margin: "-120px" }}
-              transition={{
-                type: "spring",
-                stiffness: 260,
-                damping: 20,
-                delay: 0.15,
-              }}
-              className="rounded-2xl border border-slate-200 bg-white/80 dark:border-zinc-800 dark:bg-white/5 px-5 py-4 shadow-sm"
+              {...cardIn(0.15)}
+              className="rounded-2xl border border-slate-200 bg-white/80 px-5 py-4 shadow-sm dark:border-zinc-800 dark:bg-white/5"
             >
               <p className="text-3xl font-extrabold text-cyan-600 dark:text-cyan-400">
                 2
               </p>
-              <p className="text-[11px] font-mono text-slate-600 dark:text-zinc-400 uppercase tracking-[0.18em]">
-                {t.awards.major}
+              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-slate-600 dark:text-zinc-400">
+                {t.skills.awards.major}
               </p>
             </motion.div>
 
             <motion.div
-              initial={{ opacity: 0, y: -50, rotate: -2, scale: 0.96 }}
-              whileInView={{ opacity: 1, y: 0, rotate: 0, scale: 1 }}
-              viewport={{ once: true, margin: "-120px" }}
-              transition={{
-                type: "spring",
-                stiffness: 260,
-                damping: 20,
-                delay: 0.27,
-              }}
-              className="rounded-2xl border border-slate-200 bg-white/80 dark:border-zinc-800 dark:bg-white/5 px-5 py-4 shadow-sm"
+              {...cardIn(0.27)}
+              className="rounded-2xl border border-slate-200 bg-white/80 px-5 py-4 shadow-sm dark:border-zinc-800 dark:bg-white/5"
             >
               <p className="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400">
                 1st
               </p>
-              <p className="text-[11px] font-mono text-slate-600 dark:text-zinc-400 uppercase tracking-[0.18em]">
-                {t.awards.best}
+              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-slate-600 dark:text-zinc-400">
+                {t.skills.awards.best}
               </p>
             </motion.div>
           </div>
 
           <motion.div
-            initial={{ opacity: 0, y: -50, rotate: -2, scale: 0.96 }}
-            whileInView={{ opacity: 1, y: 0, rotate: 0, scale: 1 }}
-            viewport={{ once: true, margin: "-120px" }}
-            transition={{
-              type: "spring",
-              stiffness: 260,
-              damping: 20,
-              delay: 0.4,
-            }}
-            className="rounded-2xl border border-slate-200 bg-white/90 dark:border-zinc-800 dark:bg-white/5 px-6 py-5 shadow-sm"
+            {...cardIn(0.4)}
+            className="rounded-2xl border border-slate-200 bg-white/90 px-6 py-5 shadow-sm dark:border-zinc-800 dark:bg-white/5"
           >
-            <p className="text-[11px] font-mono tracking-[0.2em] text-cyan-600 dark:text-cyan-400 uppercase mb-2">
-              {t.awards.featured}
+            <p className="mb-2 font-mono text-[11px] uppercase tracking-[0.2em] text-cyan-600 dark:text-cyan-400">
+              {t.skills.awards.featured}
             </p>
-            <h4
-              className="text-sm md:text-base font-semibold text-slate-900 dark:text-white mb-2"
-              style={{ fontFamily: "var(--font-syne)" }}
-            >
+            <h4 className="mb-2 font-syne text-sm font-semibold text-slate-900 dark:text-white md:text-base">
               {highlightProject.name}
             </h4>
-            <p className="text-xs md:text-sm font-mono text-slate-600 dark:text-zinc-400 leading-relaxed">
+            <p className="font-mono text-xs leading-relaxed text-slate-600 dark:text-zinc-400 md:text-sm">
               {highlightProject.body}
             </p>
           </motion.div>
@@ -957,46 +838,41 @@ function AchievementsBlock({
         <motion.div
           initial={{ opacity: 0, x: 24 }}
           whileInView={{ opacity: 1, x: 0 }}
-          viewport={{ once: true, margin: "-120px" }}
+          viewport={VIEWPORT}
           transition={{ duration: 0.5, ease: "easeOut", delay: 0.1 }}
           className="relative"
         >
-          <div className="absolute left-[10px] top-0 bottom-0">
-            <div className="w-px h-full bg-gradient-to-b from-cyan-500/0 via-cyan-500/40 to-emerald-500/0" />
+          <div
+            className="absolute bottom-0 left-[10px] top-0"
+            aria-hidden="true"
+          >
+            <div className="h-full w-px bg-gradient-to-b from-cyan-500/0 via-cyan-500/40 to-emerald-500/0" />
           </div>
 
           <div className="space-y-5">
             {awardItems.map((award, idx) => (
               <motion.div
                 key={award.title}
-                initial={{ opacity: 0, y: -60, rotate: -3, scale: 0.95 }}
-                whileInView={{ opacity: 1, y: 0, rotate: 0, scale: 1 }}
-                viewport={{ once: true, margin: "-120px" }}
-                transition={{
-                  type: "spring",
-                  stiffness: 260,
-                  damping: 20,
-                  delay: 0.55 + idx * 0.2,
-                }}
+                {...cardIn(0.55 + idx * 0.2, -60)}
                 className="relative pl-10"
               >
-                <div className="absolute left-[2px] top-3 w-2 h-2 rounded-full bg-cyan-500 shadow-[0 0 0 4px rgba(34,211,238,0.18)]" />
-                <div className="rounded-2xl border border-slate-200 bg-white/90 dark:border-zinc-800 dark:bg-white/5 px-5 py-4 shadow-sm">
-                  <div className="flex items-center justify-between gap-3 mb-1">
-                    <span className="text-[11px] font-mono text-slate-500 dark:text-zinc-500">
+                <div
+                  className="absolute left-[2px] top-3 h-2 w-2 rounded-full bg-cyan-500 shadow-[0_0_0_4px_rgba(34,211,238,0.18)]"
+                  aria-hidden="true"
+                />
+                <div className="rounded-2xl border border-slate-200 bg-white/90 px-5 py-4 shadow-sm dark:border-zinc-800 dark:bg-white/5">
+                  <div className="mb-1 flex items-center justify-between gap-3">
+                    <span className="font-mono text-[11px] text-slate-500 dark:text-zinc-500">
                       {award.year}
                     </span>
-                    <span className="text-[10px] font-mono uppercase tracking-[0.18em] px-2 py-1 rounded-full border border-cyan-500/40 text-cyan-700 dark:text-cyan-400 bg-cyan-500/8 dark:bg-cyan-500/10">
+                    <span className="rounded-full border border-cyan-500/40 bg-cyan-500/8 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-cyan-700 dark:bg-cyan-500/10 dark:text-cyan-400">
                       {award.type}
                     </span>
                   </div>
-                  <h4
-                    className="text-sm md:text-[15px] font-semibold text-slate-900 dark:text-white mb-1"
-                    style={{ fontFamily: "var(--font-syne)" }}
-                  >
+                  <h4 className="mb-1 font-syne text-sm font-semibold text-slate-900 dark:text-white md:text-[15px]">
                     {award.title}
                   </h4>
-                  <p className="text-xs md:text-sm font-mono text-slate-600 dark:text-zinc-400 leading-relaxed">
+                  <p className="font-mono text-xs leading-relaxed text-slate-600 dark:text-zinc-400 md:text-sm">
                     {award.body}
                   </p>
                 </div>

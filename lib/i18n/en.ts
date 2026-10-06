@@ -6,10 +6,6 @@ const en = {
     skills: 'Skills',
     certifications: 'Certifications',
     contact: 'Contact',
-    language: 'Language',
-    theme: 'Theme',
-    light: 'Light mode',
-    dark: 'Dark mode',
   },
   hero: {
     available: 'Available for work',
@@ -34,12 +30,9 @@ const en = {
     currently: 'Currently',
     quick_facts: '// quick facts',
     beyond_code: 'Life Beyond Code',
-    p1:
-      "Hey! I'm Sankalpa — a Computer Engineering Master's student at Åbo Akademi University in Turku, Finland. My journey spans two countries — shaped by the warmth and resilience of Nepal, and the precision and innovation of Finland.",
-    p2:
-      "I hold a Bachelor's in IT Engineering and I'm completing my Master's in Computer Engineering. My path has grown from full-stack web development into AI, machine learning, and the data-driven world.",
-    p3:
-      'Every dataset tells a story. Every model is a new lens on reality. That curiosity is what keeps me pushing forward.',
+    p1: "Hey! I'm Sankalpa — a Computer Engineering Master's student at Åbo Akademi University in Turku, Finland. My journey spans two countries — shaped by the warmth and resilience of Nepal, and the precision and innovation of Finland.",
+    p2: "I hold a Bachelor's in IT Engineering and I'm completing my Master's in Computer Engineering. My path has grown from full-stack web development into AI, machine learning, and the data-driven world.",
+    p3: 'Every dataset tells a story. Every model is a new lens on reality. That curiosity is what keeps me pushing forward.',
     currently_text:
       'Exploring the intersection of AI, data science & software engineering — building projects, learning new frameworks, and preparing for full-time opportunities in tech.',
     stats: {
@@ -119,8 +112,7 @@ const en = {
       badge: '// awards',
       title: 'Awards & Highlights',
       replay: '✨ Replay celebration',
-      desc:
-        'Scholarships and recognitions that shaped my journey — from faculty-level awards to building an award-winning digital queuing system.',
+      desc: 'Scholarships and recognitions that shaped my journey — from faculty-level awards to building an award-winning digital queuing system.',
       major: 'Major Awards',
       best: 'Best IT Solution',
       featured: 'Featured Project',
@@ -144,9 +136,10 @@ const en = {
     open_full: 'Open full document',
   },
   contact: {
-    section: '// 07',
+    section: '// 06',
     title: 'Contact',
-    subtitle: 'Open a support ticket — I promise my SLA is better than most helpdesks.',
+    subtitle:
+      'Open a support ticket — I promise my SLA is better than most helpdesks.',
     status: 'Status: Online · Finland (UTC+2)',
     heading_line1: 'Open a ticket with',
     heading_name: 'Sankalpa',
@@ -164,13 +157,15 @@ const en = {
     sla_based_val: 'Helsinki, Finland',
     ticket_id: 'Ticket ID',
     activity_title: 'Recent activity',
-    activity: ["Master's thesis in progress", 'Actively seeking cloud / IT roles', 'Portfolio v2 shipped'],
+    activity_1: "Master's thesis in progress",
+    activity_2: 'Actively seeking cloud / IT roles',
+    activity_3: 'Portfolio v2 shipped',
     reach: 'Or reach me at',
     form_new: 'New request',
     form_title: 'Ticket details',
     priority: 'Priority',
     urgency: {
-      exploring: 'Just exploring',
+      explore: 'Just exploring',
       soon: 'Soon',
       asap: 'ASAP',
     },
@@ -179,23 +174,28 @@ const en = {
     field_subject: 'What can I help you with?',
     field_subject_placeholder: 'e.g. Frontend role at Acme Corp',
     field_message: 'Describe your request',
-    field_message_placeholder: 'The more details, the better — I read every message.',
-    char_limit: 'Up to 900 characters',
+    field_message_placeholder:
+      'The more details, the better — I read every message.',
+    chars_up_to: 'Up to',
+    chars_label: 'characters',
     building: 'building ticket',
     attach_toggle: 'Attach a CV / portfolio link',
     attach_placeholder: 'https://your-portfolio.com',
     submit_idle: 'SEND MESSAGE',
     submit_hover: 'CREATE TICKET',
     submit_loading: 'CREATING TICKET…',
-    footer_note: 'Your message goes directly to me — no bots, no autoresponders.',
+    footer_note:
+      'Your message goes directly to me — no bots, no autoresponders.',
     success_title: 'Ticket created.',
     success_sub: "I'll get back to you soon. Keep an eye on your inbox.",
     success_ref: 'Ticket Ref:',
     success_quote: '"Thank you for reaching out. – Sankalpa"',
     send_another: 'Send another message',
-    error_msg: 'Something went wrong — please email me directly at sankalpaneupane7@gmail.com',
+    error_msg:
+      'Something went wrong — please email me directly at sankalpaneupane7@gmail.com',
+    error_invalid: 'Please check your email address and message, then try again.',
     footer_rights: 'All rights reserved.',
-    footer_built: 'Built with Next.js & Tailwind',
+    built_with: 'Built with Next.js & Tailwind',
   },
 }
 
